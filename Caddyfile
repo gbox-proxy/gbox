@@ -8,14 +8,20 @@
     }
 
     @admin_auth {
-        method POST
         path /admin/graphql
+        method POST
         expression `{$GBOX_ENABLED_CACHING:true} == true && {$GBOX_ENABLED_ADMIN_AUTH:false} == true`
+    }
+
+    @metrics {
+        path {$GBOX_METRICS_PATH:/metrics}
+        method GET
+        expression `{$GBOX_ENABLED_METRICS:false} == true`
     }
 
     route {
         encode gzip
-        metrics {$GBOX_METRICS_PATH:/metrics}
+        metrics @metrics
         basicauth @admin_auth bcrypt {
             {$GBOX_ADMIN_USERNAME:gbox} {$GBOX_ADMIN_PASSWORD:JDJhJDE0JHBXUk5YMjVRYlRtTjN3SERiU0Rrei4uMW4ub0FhaHZlY0hnbWtBMUNSLnhmeEUuUDVOOW5l}
         }

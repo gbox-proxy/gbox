@@ -19,6 +19,7 @@ services:
       GBOX_STORE_DSN: redis://redis:6379
       GBOX_SERVER_HOST: :80
       GBOX_UPSTREAM: https://countries.trevorblades.com/
+      GBOX_ENABLED_METRICS: 'true'
       GBOX_GLOBAL_DIRECTIVES: |
         debug
   redis:
