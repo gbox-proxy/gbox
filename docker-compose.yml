@@ -17,7 +17,7 @@ services:
     environment:
       XDG_DATA_HOME: /data
       GBOX_STORE_DSN: redis://redis:6379
-      GBOX_SERVER_HOST: :80
+      GBOX_SERVER_NAME: :80
       GBOX_UPSTREAM: https://countries.trevorblades.com/
       GBOX_ENABLED_METRICS: 'true'
       GBOX_GLOBAL_DIRECTIVES: |

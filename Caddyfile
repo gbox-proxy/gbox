@@ -2,7 +2,7 @@
    {$GBOX_GLOBAL_DIRECTIVES}
 }
 
-{$GBOX_SERVER_HOST:localhost} {
+{$GBOX_SERVER_NAME:localhost} {
     log {
         level {$GBOX_LOG_LEVEL:INFO}
     }
