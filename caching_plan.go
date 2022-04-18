@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/caddyserver/caddy/v2"
+	"github.com/eko/gocache/v2/store"
 	"github.com/jensneuse/graphql-go-tools/pkg/astparser"
 	"github.com/jensneuse/graphql-go-tools/pkg/astprinter"
 	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
@@ -150,8 +151,10 @@ func (p *cachingPlanner) getCached() (*cachingPlan, error) {
 
 func (p *cachingPlanner) savePlan(plan *cachingPlan) error {
 	ctx := p.request.httpRequest.Context()
+	sh, _ := p.schema.Hash()
+	tag := fmt.Sprintf(cachingTagSchemaHashPattern, sh)
 
-	return p.caching.store.Set(ctx, p.cacheKey, plan, nil)
+	return p.caching.store.Set(ctx, p.cacheKey, plan, &store.Options{Tags: []string{tag}})
 }
 
 func (p *cachingPlanner) computePlan() (*cachingPlan, error) {
