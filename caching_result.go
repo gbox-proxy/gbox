@@ -78,11 +78,7 @@ func (c *Caching) increaseQueryResultHitTimes(r *cachingQueryResult) {
 }
 
 func (r *cachingQueryResult) Status() cachingQueryResultStatus {
-	if r.Expiration == 0 || r.MaxAge == nil {
-		return CachingQueryResultValid
-	}
-
-	if time.Duration(*r.MaxAge) >= r.Age() {
+	if r.Expiration == 0 || r.MaxAge == nil || time.Duration(*r.MaxAge) >= r.Age() {
 		return CachingQueryResultValid
 	}
 

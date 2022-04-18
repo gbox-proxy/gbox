@@ -169,7 +169,7 @@ func (h *Handler) unmarshalHttpRequest(r *http.Request) (*graphql.Request, error
 	return gqlRequest, nil
 }
 
-// AdminGraphQLHandle GraphQL server for purging query result cached.
+// AdminGraphQLHandle purging query result cached and describe cache key.
 func (h *Handler) AdminGraphQLHandle(w http.ResponseWriter, r *http.Request) {
 	resolver := admin.NewResolver(h.schema, h.schemaDocument, h.logger, h.Caching)
 	gqlGen := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: resolver}))

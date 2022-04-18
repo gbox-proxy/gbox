@@ -3,8 +3,8 @@ testdata_dir = "testdata"
 tmp_dir = "tmp"
 
 [build]
-  bin = "./tmp/main run -config ./Caddyfile -watch"
-  cmd = "go build -o ./tmp/main ./cmd"
+  bin = "./tmp/gbox run -config ./Caddyfile -watch"
+  cmd = "go build -o ./tmp/gbox ./cmd"
   delay = 1000
   exclude_dir = ["assets", "tmp", "vendor", "testdata"]
   exclude_file = []

@@ -19,7 +19,6 @@ func (c *Caching) purgeQueryResultByMutationResult(request *cachingRequest, resu
 	}
 
 	purgeTags := foundTags.TypeKeys().ToSlice()
-	c.logger.Debug("purging query result with tags", zap.Strings("tags", purgeTags))
 
 	return c.purgeQueryResultByTags(c.ctxBackground, purgeTags)
 }
@@ -61,9 +60,11 @@ func (c *Caching) PurgeQueryResultByTypeKey(ctx context.Context, typeName, field
 func (c *Caching) purgeQueryResultByTags(ctx context.Context, tags []string) error {
 	var err error
 
+	c.logger.Debug("purging query result by tags", zap.Strings("tags", tags))
+
 	for _, t := range tags {
 		// because store invalidate method will be stopped on first error,
-		// so we need to purge tag by tag.
+		// so we need to invalidate tag by tag.
 		if e := c.store.Invalidate(ctx, store.InvalidateOptions{Tags: []string{t}}); e != nil {
 			if err == nil {
 				err = e
