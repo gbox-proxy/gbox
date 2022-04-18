@@ -36,7 +36,6 @@ type cachingPlan struct {
 type cachingPlanner struct {
 	caching       *Caching
 	request       *cachingRequest
-	schema        *graphql.Schema
 	ctxBackground context.Context
 	cacheKey      string
 }
@@ -151,7 +150,7 @@ func (p *cachingPlanner) getCached() (*cachingPlan, error) {
 
 func (p *cachingPlanner) savePlan(plan *cachingPlan) error {
 	ctx := p.request.httpRequest.Context()
-	sh, _ := p.schema.Hash()
+	sh, _ := p.request.schema.Hash()
 	tag := fmt.Sprintf(cachingTagSchemaHashPattern, sh)
 
 	return p.caching.store.Set(ctx, p.cacheKey, plan, &store.Options{Tags: []string{tag}})
