@@ -21,10 +21,13 @@
 
     route {
         encode gzip
+
         metrics @metrics
+
         basicauth @admin_auth bcrypt {
             {$GBOX_ADMIN_USERNAME:gbox} {$GBOX_ADMIN_PASSWORD:JDJhJDE0JHBXUk5YMjVRYlRtTjN3SERiU0Rrei4uMW4ub0FhaHZlY0hnbWtBMUNSLnhmeEUuUDVOOW5l}
         }
+
         gbox {
             upstream {$GBOX_UPSTREAM} {
                 {$GBOX_UPSTREAM_REVERSE_PROXY_DIRECTIVES}
@@ -56,5 +59,7 @@
             }
             {$GBOX_EXTRA_DIRECTIVES}
         }
+
+        respond /healthz "OK"
     }
 }
