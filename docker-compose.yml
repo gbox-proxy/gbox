@@ -1,0 +1,27 @@
+version: '3.8'
+
+volumes:
+  data:
+  mod-cache:
+
+services:
+  air:
+    image: cosmtrek/air:v1.29.0
+    working_dir: /app
+    ports:
+      - 8888:80
+    volumes:
+      - ./:/app:rw
+      - mod-cache:/go/pkg/mod/cache:rw,cached
+      - data:/data:rw,cached
+    environment:
+      XDG_DATA_HOME: /data
+      GBOX_STORE_DSN: redis://redis:6379
+      GBOX_SERVER_HOST: :80
+      GBOX_UPSTREAM: https://countries.trevorblades.com/
+      GBOX_GLOBAL_DIRECTIVES: |
+        debug
+  redis:
+    image: redis
+    ports:
+      - 6379:6379

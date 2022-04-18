@@ -1,0 +1,54 @@
+{
+   {$GBOX_GLOBAL_DIRECTIVES}
+}
+
+{$GBOX_SERVER_HOST:localhost} {
+    log {
+        level {$GBOX_LOG_LEVEL:INFO}
+    }
+
+    @admin_auth {
+        method POST
+        path /admin/graphql
+        expression `{$GBOX_ENABLED_CACHING:true} == true && {$GBOX_ENABLED_ADMIN_AUTH:false} == true`
+    }
+
+    route {
+        encode gzip
+        metrics {$GBOX_METRICS_PATH:/metrics}
+        basicauth @admin_auth bcrypt {
+            {$GBOX_ADMIN_USERNAME:gbox} {$GBOX_ADMIN_PASSWORD:JDJhJDE0JHBXUk5YMjVRYlRtTjN3SERiU0Rrei4uMW4ub0FhaHZlY0hnbWtBMUNSLnhmeEUuUDVOOW5l}
+        }
+        gbox {
+            upstream {$GBOX_UPSTREAM} {
+                {$GBOX_UPSTREAM_REVERSE_PROXY_DIRECTIVES}
+            }
+            fetch_schema_interval {$GBOX_FETCH_SCHEMA_INTERVAL:10m}
+            complexity {
+                enabled {$GBOX_ENABLED_COMPLEXITY:true}
+                node_count_limit {$GBOX_NODE_COUNT_LIMIT:60}
+                max_complexity {$GBOX_MAX_COMPLEXITY:60}
+                max_depth {$GBOX_MAX_DEPTH:15}
+            }
+            disabled_introspection {$GBOX_DISABLED_INTROSPECTION:false}
+            disabled_playgrounds {$GBOX_DISABLED_PLAYGROUNDS:false}
+            caching {
+                enabled {$GBOX_ENABLED_CACHING:true}
+                store_dsn {$GBOX_STORE_DSN:freecache://?cache_size=5368709120}
+                rules {
+                    {$GBOX_CACHING_RULES:
+                        AllTypes {
+                            max_age 30m
+                            swr 30m
+                        }
+                    }
+                }
+                varies {
+                    {$GBOX_CACHING_VARIES}
+                }
+                auto_invalidate_cache {$GBOX_AUTO_INVALIDATE_CACHE:true}
+            }
+            {$GBOX_EXTRA_DIRECTIVES}
+        }
+    }
+}
