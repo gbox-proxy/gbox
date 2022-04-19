@@ -103,7 +103,9 @@ func (h *Handler) GraphQLHandle(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 
 	h.addMetricsBeginRequest(gqlRequest)
-	defer h.addMetricsEndRequest(gqlRequest, time.Since(start))
+	defer func() {
+		h.addMetricsEndRequest(gqlRequest, time.Since(start))
+	}()
 
 	if isIntrospectQuery && h.DisabledIntrospection {
 		reporter.error = writeResponseErrors(errors.New("introspection queries are not allowed"), w)
