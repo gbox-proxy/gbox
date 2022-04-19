@@ -23,7 +23,7 @@ const (
 	graphQLPath         = "/graphql"
 )
 
-func (h *Handler) initRouter() (err error) {
+func (h *Handler) initRouter() {
 	router := mux.NewRouter()
 	router.Path(graphQLPath).HeadersRegexp(
 		"content-type", "application/json*",
