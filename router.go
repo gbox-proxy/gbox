@@ -14,6 +14,7 @@ import (
 	"go.uber.org/zap"
 	"io/ioutil"
 	"net/http"
+	"time"
 )
 
 const (
@@ -99,9 +100,10 @@ func (h *Handler) GraphQLHandle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	isIntrospectQuery, _ := gqlRequest.IsIntrospectionQuery()
+	start := time.Now()
 
 	h.addMetricsBeginRequest(gqlRequest)
-	defer h.addMetricsEndRequest(gqlRequest)
+	defer h.addMetricsEndRequest(gqlRequest, time.Since(start))
 
 	if isIntrospectQuery && h.DisabledIntrospection {
 		reporter.error = writeResponseErrors(errors.New("introspection queries are not allowed"), w)

@@ -10,6 +10,7 @@ import (
 	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
 	"net"
 	"net/http"
+	"time"
 )
 
 type wsMetricsResponseWriter struct {
@@ -43,7 +44,8 @@ func (r *wsMetricsResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) 
 type wsMetricsConn struct {
 	net.Conn
 	requestMetrics
-	request *graphql.Request
+	request     *graphql.Request
+	subscribeAt time.Time
 }
 
 func (c *wsMetricsConn) Read(b []byte) (n int, err error) {
@@ -72,7 +74,7 @@ func (c *wsMetricsConn) Read(b []byte) (n int, err error) {
 
 	// TODO: implement decompress message via `Sec-WebSocket-Extensions` upgrade header.
 	if hdr.OpCode == ws.OpClose && c.request != nil {
-		c.addMetricsEndRequest(c.request)
+		c.addMetricsEndRequest(c.request, time.Since(c.subscribeAt))
 
 		return
 	}
@@ -90,6 +92,7 @@ func (c *wsMetricsConn) Read(b []byte) (n int, err error) {
 
 		if e = c.addMetricsBeginRequest(request); e == nil {
 			c.request = request
+			c.subscribeAt = time.Now()
 		}
 	}
 
