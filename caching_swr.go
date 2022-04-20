@@ -63,12 +63,8 @@ func (c *Caching) swrQueryResult(result *cachingQueryResult, request *cachingReq
 	return nil
 }
 
-func newSwrHttpRequest(ctx context.Context, r *http.Request) *http.Request {
-	rCtx := r.Context()
-	ctx = context.WithValue(ctx, caddy.ReplacerCtxKey, rCtx.Value(caddy.ReplacerCtxKey))
-	ctx = context.WithValue(ctx, caddyhttp.ServerCtxKey, rCtx.Value(caddyhttp.ServerCtxKey))
-	ctx = context.WithValue(ctx, caddyhttp.VarsCtxKey, rCtx.Value(caddyhttp.VarsCtxKey))
-	ctx = context.WithValue(ctx, caddyhttp.OriginalRequestCtxKey, rCtx.Value(caddyhttp.OriginalRequestCtxKey))
+func prepareSwrHttpRequest(ctx context.Context, r *http.Request, w http.ResponseWriter) *http.Request {
+	s := r.Context().Value(caddyhttp.ServerCtxKey).(*caddyhttp.Server)
 
-	return r.Clone(ctx)
+	return caddyhttp.PrepareRequest(r.Clone(ctx), caddy.NewReplacer(), w, s)
 }
