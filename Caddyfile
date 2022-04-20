@@ -45,12 +45,7 @@
                 enabled {$GBOX_ENABLED_CACHING:true}
                 store_dsn {$GBOX_STORE_DSN:freecache://?cache_size=5368709120}
                 rules {
-                    {$GBOX_CACHING_RULES:
-                        AllTypes {
-                            max_age 30m
-                            swr 30m
-                        }
-                    }
+                    {$GBOX_CACHING_RULES}
                 }
                 varies {
                     {$GBOX_CACHING_VARIES}

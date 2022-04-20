@@ -180,9 +180,6 @@ func (h *Handler) Cleanup() error {
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, n caddyhttp.Handler) error {
-	// Remove accept encoding header to prevent response content encoding when reverse request to upstream
-	r.Header.Del("accept-encoding")
-
 	reporter := new(errorReporter)
 	ctx := context.WithValue(r.Context(), nextHandlerCtxKey, n)
 	ctx = context.WithValue(ctx, errorReporterCtxKey, reporter)
