@@ -52,7 +52,7 @@ func (c *Caching) swrQueryResult(result *cachingQueryResult, request *cachingReq
 	ct := rw.Header().Get("content-type")
 	mt, _, _ := mime.ParseMediaType(ct)
 
-	if rw.Status() != http.StatusOK || mt == "application/json" {
+	if rw.Status() != http.StatusOK || mt != "application/json" {
 		return fmt.Errorf("getting invalid response from upstream, status: %d, content-type: %s", rw.Status(), ct)
 	}
 

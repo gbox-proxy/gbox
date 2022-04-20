@@ -5,6 +5,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"sync"
+	"time"
 )
 
 var metrics *Metrics = new(Metrics)
@@ -25,6 +26,14 @@ func init() {
 			Subsystem: sub,
 			Name:      "operation_total",
 			Help:      "Counter of graphql operations served.",
+		}, operationLabels)
+
+		metrics.operationDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
+			Namespace: ns,
+			Subsystem: sub,
+			Name:      "operation_duration",
+			Help:      "Histogram of GraphQL operations execution duration.",
+			Buckets:   prometheus.DefBuckets,
 		}, operationLabels)
 
 		cacheLabels := []string{"operation_name"}
@@ -55,6 +64,7 @@ type Metrics struct {
 	once              sync.Once
 	operationInFlight *prometheus.GaugeVec
 	operationCount    *prometheus.CounterVec
+	operationDuration *prometheus.HistogramVec
 	cacheHits         *prometheus.CounterVec
 	cacheMisses       *prometheus.CounterVec
 	cachePasses       *prometheus.CounterVec
@@ -62,7 +72,7 @@ type Metrics struct {
 
 type requestMetrics interface {
 	addMetricsBeginRequest(*graphql.Request) error
-	addMetricsEndRequest(*graphql.Request) error
+	addMetricsEndRequest(*graphql.Request, time.Duration) error
 }
 
 type cacheMetrics interface {
@@ -84,7 +94,7 @@ func (h *Handler) addMetricsBeginRequest(request *graphql.Request) error {
 	return nil
 }
 
-func (h *Handler) addMetricsEndRequest(request *graphql.Request) error {
+func (h *Handler) addMetricsEndRequest(request *graphql.Request, d time.Duration) error {
 	labels, err := h.metricsOperationLabels(request)
 
 	if err != nil {
@@ -92,6 +102,7 @@ func (h *Handler) addMetricsEndRequest(request *graphql.Request) error {
 	}
 
 	h.metrics.operationInFlight.With(labels).Dec()
+	h.metrics.operationDuration.With(labels).Observe(d.Seconds())
 
 	return nil
 }

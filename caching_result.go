@@ -3,10 +3,10 @@ package gbox
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/caddyserver/caddy/v2"
 	"github.com/eko/gocache/v2/store"
 	"github.com/pquerna/cachecontrol/cacheobject"
+	"go.uber.org/zap"
 	"net/http"
 	"time"
 )
@@ -66,15 +66,13 @@ func (c *Caching) cachingQueryResult(request *cachingRequest, plan *cachingPlan,
 	return c.store.Set(c.ctxBackground, plan.queryResultCacheKey, result, result.storeOpts())
 }
 
-func (c *Caching) increaseQueryResultHitTimes(r *cachingQueryResult) {
+func (c *Caching) increaseQueryResultHitTimes(ctx context.Context, r *cachingQueryResult) {
 	r.HitTime += 1
-	go func() {
-		err := c.store.Set(c.ctxBackground, r.plan.queryResultCacheKey, r, r.storeOpts())
+	err := c.store.Set(ctx, r.plan.queryResultCacheKey, r, r.storeOpts())
 
-		if err != nil {
-			c.logger.Error(fmt.Sprintf("increase query result hit times failed: %s", r.plan.queryResultCacheKey))
-		}
-	}()
+	if err != nil {
+		c.logger.Error("increase query result hit times failed", zap.String("cache_key", r.plan.queryResultCacheKey), zap.Error(err))
+	}
 }
 
 func (r *cachingQueryResult) Status() cachingQueryResultStatus {

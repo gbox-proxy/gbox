@@ -16,7 +16,11 @@ import (
 
 var handleUnknownOperationTypeError = errors.New("unknown operation type")
 
+// HandleRequest caching GraphQL query result by configured rules and varies.
 func (c *Caching) HandleRequest(w http.ResponseWriter, r *cachingRequest, h caddyhttp.HandlerFunc) error {
+	// Remove `accept-encoding` header to prevent response body encoded when forward request to upstream
+	// encode directive had read this header, safe to delete it.
+	r.httpRequest.Header.Del("accept-encoding")
 	operationType, _ := r.gqlRequest.OperationType()
 
 	switch operationType {
@@ -96,12 +100,12 @@ func (c *Caching) handleQueryRequest(w http.ResponseWriter, r *cachingRequest, h
 		err = h(recorder, r.httpRequest)
 	case CachingStatusHit:
 		defer c.addMetricsCacheHit(r.gqlRequest)
-		c.addCachingResponseHeaders(status, result, plan, w.Header())
 
 		for header, values := range result.Header {
 			w.Header()[header] = values
 		}
 
+		c.addCachingResponseHeaders(status, result, plan, w.Header())
 		w.WriteHeader(http.StatusOK)
 		_, err = w.Write(result.Body)
 
@@ -137,7 +141,7 @@ func (c *Caching) resolvePlan(r *cachingRequest, p *cachingPlan) (CachingStatus,
 	result, _ := c.getCachingQueryResult(r.httpRequest.Context(), p)
 
 	if result != nil && (r.cacheControl == nil || result.ValidFor(r.cacheControl)) {
-		c.increaseQueryResultHitTimes(result)
+		c.increaseQueryResultHitTimes(r.httpRequest.Context(), result)
 
 		return CachingStatusHit, result
 	}
@@ -172,13 +176,13 @@ func (c *Caching) addCachingResponseHeaders(s CachingStatus, r *cachingQueryResu
 		age := int64(r.Age().Seconds())
 		cacheControl := []string{"public"}
 
-		if p.MaxAge != nil {
-			maxAge := int64(time.Duration(*p.MaxAge).Seconds())
+		if r.MaxAge != nil {
+			maxAge := int64(time.Duration(*r.MaxAge).Seconds())
 			cacheControl = append(cacheControl, fmt.Sprintf("s-maxage=%d", maxAge))
 		}
 
-		if p.Swr != nil {
-			swr := int64(time.Duration(*p.Swr).Seconds())
+		if r.Swr != nil {
+			swr := int64(time.Duration(*r.Swr).Seconds())
 			cacheControl = append(cacheControl, fmt.Sprintf("stale-while-revalidate=%d", swr))
 		}
 
