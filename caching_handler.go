@@ -113,9 +113,7 @@ func (c *Caching) handleQueryRequest(w http.ResponseWriter, r *cachingRequest, h
 			return nil
 		}
 
-		// query result had been stale should revalidate
-		// swr http request should create in current go-routine to prevent concurrent iteration and write header.
-		r.httpRequest = newSwrHttpRequest(c.ctxBackground, r.httpRequest)
+		r.httpRequest = prepareSwrHttpRequest(c.ctxBackground, r.httpRequest, w)
 
 		go func() {
 			if err := c.swrQueryResult(result, r, h); err != nil {
