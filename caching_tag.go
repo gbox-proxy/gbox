@@ -134,17 +134,21 @@ func newCachingTagAnalyzer(r *cachingRequest, t graphql.RequestTypes) *cachingTa
 	return &cachingTagAnalyzer{r, t}
 }
 
-func (c *cachingTagAnalyzer) AnalyzeResult(result []byte, onlyTypes map[string]struct{}, tags cachingTags) error {
+func (c *cachingTagAnalyzer) AnalyzeResult(result []byte, onlyTypes map[string]struct{}, tags cachingTags) (err error) {
 	normalizedQueryResult := &struct {
 		Data map[string]interface{} `json:"data,omitempty"`
 	}{}
 
-	if err := json.Unmarshal(result, normalizedQueryResult); err != nil {
+	if err = json.Unmarshal(result, normalizedQueryResult); err != nil {
 		return err
 	}
 
 	if normalizedQueryResult.Data == nil || len(normalizedQueryResult.Data) == 0 {
 		return errors.New("query result: `data` field missing")
+	}
+
+	if err = c.request.initOperation(); err != nil {
+		return err
 	}
 
 	report := &operationreport.Report{}
@@ -166,7 +170,7 @@ func (c *cachingTagAnalyzer) AnalyzeResult(result []byte, onlyTypes map[string]s
 
 	schemaHash, _ := c.request.schema.Hash()
 	schemaHashTag := fmt.Sprintf(cachingTagSchemaHashPattern, schemaHash)
-	operationTag := fmt.Sprintf(cachingTagOperationPattern, c.request.operationName)
+	operationTag := fmt.Sprintf(cachingTagOperationPattern, c.request.gqlRequest.OperationName)
 	tags[schemaHashTag] = struct{}{}
 	tags[operationTag] = struct{}{}
 

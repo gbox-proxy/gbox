@@ -43,11 +43,11 @@ func (c *Caching) getCachingQueryResult(ctx context.Context, plan *cachingPlan) 
 	return result, nil
 }
 
-func (c *Caching) cachingQueryResult(request *cachingRequest, plan *cachingPlan, body []byte, header http.Header) error {
+func (c *Caching) cachingQueryResult(request *cachingRequest, plan *cachingPlan, body []byte, header http.Header) (err error) {
 	tags := make(cachingTags)
 	tagAnalyzer := newCachingTagAnalyzer(request, c.TypeKeys)
 
-	if err := tagAnalyzer.AnalyzeResult(body, plan.Types, tags); err != nil {
+	if err = tagAnalyzer.AnalyzeResult(body, plan.Types, tags); err != nil {
 		return err
 	}
 

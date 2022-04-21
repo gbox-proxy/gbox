@@ -10,11 +10,11 @@ import (
 	"strconv"
 )
 
-func (c *Caching) purgeQueryResultByMutationResult(request *cachingRequest, result []byte) error {
+func (c *Caching) purgeQueryResultByMutationResult(request *cachingRequest, result []byte) (err error) {
 	foundTags := make(cachingTags)
 	tagAnalyzer := newCachingTagAnalyzer(request, c.TypeKeys)
 
-	if err := tagAnalyzer.AnalyzeResult(result, nil, foundTags); err != nil {
+	if err = tagAnalyzer.AnalyzeResult(result, nil, foundTags); err != nil {
 		return err
 	}
 
