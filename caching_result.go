@@ -43,7 +43,7 @@ func (c *Caching) getCachingQueryResult(ctx context.Context, plan *cachingPlan) 
 	return result, nil
 }
 
-func (c *Caching) cachingQueryResult(request *cachingRequest, plan *cachingPlan, body []byte, header http.Header) (err error) {
+func (c *Caching) cachingQueryResult(ctx context.Context, request *cachingRequest, plan *cachingPlan, body []byte, header http.Header) (err error) {
 	tags := make(cachingTags)
 	tagAnalyzer := newCachingTagAnalyzer(request, c.TypeKeys)
 
@@ -63,16 +63,24 @@ func (c *Caching) cachingQueryResult(request *cachingRequest, plan *cachingPlan,
 	result.normalizeHeader()
 	result.computeExpiration()
 
-	return c.store.Set(c.ctxBackground, plan.queryResultCacheKey, result, result.storeOpts())
+	return c.store.Set(ctx, plan.queryResultCacheKey, result, &store.Options{
+		Tags:       tags.ToSlice(),
+		Expiration: result.Expiration,
+	})
 }
 
 func (c *Caching) increaseQueryResultHitTimes(ctx context.Context, r *cachingQueryResult) {
-	r.HitTime += 1
-	err := c.store.Set(ctx, r.plan.queryResultCacheKey, r, r.storeOpts())
+	r.HitTime++
 
-	if err != nil {
-		c.logger.Error("increase query result hit times failed", zap.String("cache_key", r.plan.queryResultCacheKey), zap.Error(err))
-	}
+	go func() {
+		err := c.store.Set(ctx, r.plan.queryResultCacheKey, r, &store.Options{
+			Expiration: r.Expiration - time.Since(r.CreatedAt),
+		})
+
+		if err != nil {
+			c.logger.Error("increase query result hit times failed", zap.String("cache_key", r.plan.queryResultCacheKey), zap.Error(err))
+		}
+	}()
 }
 
 func (r *cachingQueryResult) Status() cachingQueryResultStatus {
@@ -81,13 +89,6 @@ func (r *cachingQueryResult) Status() cachingQueryResultStatus {
 	}
 
 	return CachingQueryResultStale
-}
-
-func (r *cachingQueryResult) storeOpts() *store.Options {
-	return &store.Options{
-		Tags:       r.Tags.ToSlice(),
-		Expiration: r.Expiration,
-	}
 }
 
 func (r *cachingQueryResult) computeExpiration() {

@@ -56,9 +56,10 @@ func (c *wsMetricsConn) Read(b []byte) (n int, err error) {
 	}
 
 	buff := bufferPool.Get().(*bytes.Buffer)
+	defer bufferPool.Put(buff)
 	buff.Reset()
 	buff.Write(b[:n])
-	defer bufferPool.Put(buff)
+
 	r := wsutil.NewServerSideReader(buff)
 	hdr, e := r.NextFrame()
 

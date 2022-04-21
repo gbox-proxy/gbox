@@ -49,55 +49,48 @@ func (c *Caching) handleQueryRequest(w http.ResponseWriter, r *cachingRequest, h
 	case CachingStatusMiss:
 		defer c.addMetricsCacheMiss(r.gqlRequest)
 
-		recordBuff := bufferPool.Get().(*bytes.Buffer)
-		defer bufferPool.Put(recordBuff)
-		recordBuff.Reset()
+		bodyBuff := bufferPool.Get().(*bytes.Buffer)
+		defer bufferPool.Put(bodyBuff)
+		bodyBuff.Reset()
 
-		recorder := caddyhttp.NewResponseRecorder(w, recordBuff, func(httpStatus int, header http.Header) bool {
-			var shouldBuffer bool
-			mt, _, _ := mime.ParseMediaType(header.Get("content-type"))
+		crw := newCachingResponseWriter(bodyBuff)
 
-			if httpStatus == http.StatusOK && mt == "application/json" {
-				// respect no-store directive
-				shouldBuffer = r.cacheControl == nil || !r.cacheControl.NoStore
-			}
-
-			if !shouldBuffer {
-				// when should not record response we need to add caching header first
-				c.addCachingResponseHeaders(status, result, plan, header)
-			}
-
-			return shouldBuffer
-		})
+		if err = h(crw, r.httpRequest); err != nil {
+			return
+		}
 
 		defer func() {
-			if !recorder.Buffered() {
-				return
-			}
-
-			defer func() {
-				c.addCachingResponseHeaders(status, result, plan, recorder.Header())
-				err = recorder.WriteResponse()
-			}()
-
-			header := recorder.Header().Clone()
-			bodyBuff := bufferPool.Get().(*bytes.Buffer)
-			bodyBuff.Reset()
-			bodyBuff.Write(recordBuff.Bytes())
-
-			go func() {
-				defer bufferPool.Put(bodyBuff)
-				err := c.cachingQueryResult(r, plan, bodyBuff.Bytes(), header)
-
-				if err != nil {
-					c.logger.Info("fail to cache query result", zap.Error(err))
-				} else {
-					c.logger.Info("caching query result successful", zap.String("cache_key", plan.queryResultCacheKey))
-				}
-			}()
+			c.addCachingResponseHeaders(status, result, plan, w.Header())
+			err = crw.WriteResponse(w)
 		}()
 
-		err = h(recorder, r.httpRequest)
+		shouldCache := false
+		mt, _, _ := mime.ParseMediaType(crw.header.Get("content-type"))
+
+		if crw.Status() == http.StatusOK && mt == "application/json" {
+			// respect no-store directive
+			// https://datatracker.ietf.org/doc/html/rfc7234#section-5.2.1.5
+			shouldCache = r.cacheControl == nil || !r.cacheControl.NoStore
+		}
+
+		if !shouldCache {
+			return
+		}
+
+		bodyBuffCopy := bufferPool.Get().(*bytes.Buffer)
+		bodyBuffCopy.Reset()
+		bodyBuffCopy.Write(crw.buffer.Bytes())
+
+		go func(header http.Header) {
+			defer bufferPool.Put(bodyBuffCopy)
+			err := c.cachingQueryResult(c.ctxBackground, r, plan, bodyBuffCopy.Bytes(), header)
+
+			if err != nil {
+				c.logger.Info("fail to cache query result", zap.Error(err))
+			} else {
+				c.logger.Info("caching query result successful", zap.String("cache_key", plan.queryResultCacheKey))
+			}
+		}(crw.Header().Clone())
 	case CachingStatusHit:
 		defer c.addMetricsCacheHit(r.gqlRequest)
 
@@ -109,14 +102,14 @@ func (c *Caching) handleQueryRequest(w http.ResponseWriter, r *cachingRequest, h
 		w.WriteHeader(http.StatusOK)
 		_, err = w.Write(result.Body)
 
-		if result.Status() != CachingQueryResultStale {
-			return nil
+		if err != nil || result.Status() != CachingQueryResultStale {
+			return
 		}
 
 		r.httpRequest = prepareSwrHttpRequest(c.ctxBackground, r.httpRequest, w)
 
 		go func() {
-			if err := c.swrQueryResult(result, r, h); err != nil {
+			if err := c.swrQueryResult(c.ctxBackground, result, r, h); err != nil {
 				c.logger.Info("swr failed, can not update query result", zap.String("cache_key", plan.queryResultCacheKey), zap.Error(err))
 			} else {
 				c.logger.Info("swr query result successful", zap.String("cache_key", plan.queryResultCacheKey))
@@ -128,7 +121,7 @@ func (c *Caching) handleQueryRequest(w http.ResponseWriter, r *cachingRequest, h
 		err = h(w, r.httpRequest)
 	}
 
-	return err
+	return
 }
 
 func (c *Caching) resolvePlan(r *cachingRequest, p *cachingPlan) (CachingStatus, *cachingQueryResult) {
@@ -188,6 +181,20 @@ func (c *Caching) addCachingResponseHeaders(s CachingStatus, r *cachingQueryResu
 		h.Set("cache-control", strings.Join(cacheControl, "; "))
 		h.Set("x-cache-hits", fmt.Sprintf("%d", r.HitTime))
 	}
+
+	if c.DebugHeaders {
+		h.Set("x-debug-result-cache-key", p.queryResultCacheKey)
+
+		if r == nil {
+			return
+		}
+
+		if len(r.Tags.TypeKeys()) == 0 {
+			h.Set("x-debug-result-missing-type-keys", "")
+		}
+
+		h.Set("x-debug-result-tags", strings.Join(r.Tags.ToSlice(), ", "))
+	}
 }
 
 func (c *Caching) handleMutationRequest(w http.ResponseWriter, r *cachingRequest, h caddyhttp.HandlerFunc) (err error) {
@@ -195,39 +202,47 @@ func (c *Caching) handleMutationRequest(w http.ResponseWriter, r *cachingRequest
 		return h(w, r.httpRequest)
 	}
 
-	recordBuff := bufferPool.Get().(*bytes.Buffer)
-	defer bufferPool.Put(recordBuff)
-	recordBuff.Reset()
+	bodyBuff := bufferPool.Get().(*bytes.Buffer)
+	defer bufferPool.Put(bodyBuff)
+	bodyBuff.Reset()
 
-	recorder := caddyhttp.NewResponseRecorder(w, recordBuff, func(status int, header http.Header) bool {
-		mt, _, _ := mime.ParseMediaType(header.Get("content-type"))
+	crw := newCachingResponseWriter(bodyBuff)
+	err = h(crw, r.httpRequest)
 
-		return status == http.StatusOK && mt == "application/json"
-	})
+	if err != nil {
+		return
+	}
 
 	defer func() {
-		if !recorder.Buffered() {
-			return
-		}
-
-		bodyBuff := bufferPool.Get().(*bytes.Buffer)
-		bodyBuff.Reset()
-		bodyBuff.Write(recordBuff.Bytes())
-
-		go func() {
-			defer bufferPool.Put(bodyBuff)
-
-			err := c.purgeQueryResultByMutationResult(r, bodyBuff.Bytes())
-
-			if err != nil {
-				c.logger.Info("fail to purge query result", zap.Error(err))
-			}
-		}()
-
-		err = recorder.WriteResponse()
+		err = crw.WriteResponse(w)
 	}()
 
-	err = h(recorder, r.httpRequest)
+	mt, _, _ := mime.ParseMediaType(crw.Header().Get("content-type"))
+
+	if crw.Status() != http.StatusOK || mt != "application/json" {
+		return
+	}
+
+	foundTags := make(cachingTags)
+	tagAnalyzer := newCachingTagAnalyzer(r, c.TypeKeys)
+
+	if err := tagAnalyzer.AnalyzeResult(crw.buffer.Bytes(), nil, foundTags); err != nil {
+		c.logger.Info("fail to analyze result tags", zap.Error(err))
+
+		return nil
+	}
+
+	purgeTags := foundTags.TypeKeys().ToSlice()
+
+	if c.DebugHeaders {
+		w.Header().Set("x-debug-purging-tags", strings.Join(purgeTags, "; "))
+	}
+
+	go func() {
+		if err := c.purgeQueryResultByTags(c.ctxBackground, purgeTags); err != nil {
+			c.logger.Info("fail to purge query result by tags", zap.Error(err))
+		}
+	}()
 
 	return
 }
