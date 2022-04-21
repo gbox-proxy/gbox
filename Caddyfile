@@ -2,59 +2,61 @@
    {$GBOX_GLOBAL_DIRECTIVES}
 }
 
-{$GBOX_SERVER_NAME:localhost} {
-    log {
-        level {$GBOX_LOG_LEVEL:INFO}
+{$GBOX_SERVER_NAME:localhost}
+
+log
+
+@admin_auth {
+    path /admin/graphql
+    method POST
+    expression `{$GBOX_ENABLED_CACHING:true} == true && {$GBOX_ENABLED_ADMIN_AUTH:false} == true`
+}
+
+@metrics {
+    path {$GBOX_METRICS_PATH:/metrics}
+    method GET
+    expression `{$GBOX_ENABLED_METRICS:false} == true`
+}
+
+route {
+    encode gzip
+
+    metrics @metrics
+
+    basicauth @admin_auth bcrypt {
+        {$GBOX_ADMIN_USERNAME:gbox} {$GBOX_ADMIN_PASSWORD:JDJhJDE0JHBXUk5YMjVRYlRtTjN3SERiU0Rrei4uMW4ub0FhaHZlY0hnbWtBMUNSLnhmeEUuUDVOOW5l}
     }
 
-    @admin_auth {
-        path /admin/graphql
-        method POST
-        expression `{$GBOX_ENABLED_CACHING:true} == true && {$GBOX_ENABLED_ADMIN_AUTH:false} == true`
-    }
-
-    @metrics {
-        path {$GBOX_METRICS_PATH:/metrics}
-        method GET
-        expression `{$GBOX_ENABLED_METRICS:false} == true`
-    }
-
-    route {
-        encode gzip
-
-        metrics @metrics
-
-        basicauth @admin_auth bcrypt {
-            {$GBOX_ADMIN_USERNAME:gbox} {$GBOX_ADMIN_PASSWORD:JDJhJDE0JHBXUk5YMjVRYlRtTjN3SERiU0Rrei4uMW4ub0FhaHZlY0hnbWtBMUNSLnhmeEUuUDVOOW5l}
+    gbox {
+        upstream {$GBOX_UPSTREAM} {
+            {$GBOX_UPSTREAM_REVERSE_PROXY_DIRECTIVES}
         }
-
-        gbox {
-            upstream {$GBOX_UPSTREAM} {
-                {$GBOX_UPSTREAM_REVERSE_PROXY_DIRECTIVES}
-            }
-            fetch_schema_interval {$GBOX_FETCH_SCHEMA_INTERVAL:10m}
-            complexity {
-                enabled {$GBOX_ENABLED_COMPLEXITY:true}
-                node_count_limit {$GBOX_NODE_COUNT_LIMIT:60}
-                max_complexity {$GBOX_MAX_COMPLEXITY:60}
-                max_depth {$GBOX_MAX_DEPTH:15}
-            }
-            disabled_introspection {$GBOX_DISABLED_INTROSPECTION:false}
-            disabled_playgrounds {$GBOX_DISABLED_PLAYGROUNDS:false}
-            caching {
-                enabled {$GBOX_ENABLED_CACHING:true}
-                store_dsn {$GBOX_STORE_DSN:freecache://?cache_size=5368709120}
-                rules {
-                    {$GBOX_CACHING_RULES}
-                }
-                varies {
-                    {$GBOX_CACHING_VARIES}
-                }
-                auto_invalidate_cache {$GBOX_AUTO_INVALIDATE_CACHE:true}
-            }
-            {$GBOX_EXTRA_DIRECTIVES}
+        fetch_schema_interval {$GBOX_FETCH_SCHEMA_INTERVAL:10m}
+        complexity {
+            enabled {$GBOX_ENABLED_COMPLEXITY:true}
+            node_count_limit {$GBOX_NODE_COUNT_LIMIT:60}
+            max_complexity {$GBOX_MAX_COMPLEXITY:60}
+            max_depth {$GBOX_MAX_DEPTH:15}
         }
-
-        respond /healthz "OK"
+        disabled_introspection {$GBOX_DISABLED_INTROSPECTION:false}
+        disabled_playgrounds {$GBOX_DISABLED_PLAYGROUNDS:false}
+        caching {
+            enabled {$GBOX_ENABLED_CACHING:true}
+            store_dsn {$GBOX_STORE_DSN:freecache://?cache_size=5368709120}
+            rules {
+                {$GBOX_CACHING_RULES}
+            }
+            varies {
+                {$GBOX_CACHING_VARIES}
+            }
+            type_keys {
+                {$GBOX_CACHING_TYPE_KEYS}
+            }
+            auto_invalidate_cache {$GBOX_AUTO_INVALIDATE_CACHE:true}
+            debug_headers {$GBOX_CACHING_DEBUG_HEADERS:true}
+        }
+        {$GBOX_EXTRA_DIRECTIVES}
     }
+
+    respond /healthz "OK"
 }
