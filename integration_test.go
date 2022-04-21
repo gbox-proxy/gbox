@@ -67,9 +67,14 @@ complexity {
 	for name, testCase := range testCases {
 		tester := caddytest.NewTester(s.T())
 		tester.InitServer(fmt.Sprintf(caddyfilePattern, testCase.extraConfig), "caddyfile")
-		rBody := strings.NewReader(`{"query": "query { __schema { queryType { name } } }"}`)
-		r, _ := http.NewRequest("POST", "http://localhost:9090/graphql", rBody)
+
+		r, _ := http.NewRequest(
+			"POST",
+			"http://localhost:9090/graphql",
+			strings.NewReader(`{"query": "query { __schema { queryType { name } } }"}`),
+		)
 		r.Header.Add("content-type", "application/json")
+
 		resp := tester.AssertResponseCode(r, http.StatusOK)
 		respBody, _ := ioutil.ReadAll(resp.Body)
 		actualBody := strings.TrimSpace(string(respBody))
