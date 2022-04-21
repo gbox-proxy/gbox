@@ -64,6 +64,18 @@ func (h *Handler) unmarshalCaddyfileCaching(d *caddyfile.Dispenser) error {
 				}
 
 				caching.AutoInvalidate = val
+			case "debug_headers":
+				if !d.NextArg() {
+					return d.ArgErr()
+				}
+
+				val, err := strconv.ParseBool(d.Val())
+
+				if err != nil {
+					return err
+				}
+
+				caching.DebugHeaders = val
 			default:
 				return d.Errf("unrecognized subdirective %s", d.Val())
 			}
