@@ -10,10 +10,13 @@ import (
 	"github.com/gbox-proxy/gbox/admin/generated"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/jensneuse/graphql-go-tools/pkg/astparser"
 	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
+	"github.com/jensneuse/graphql-go-tools/pkg/operationreport"
 	"go.uber.org/zap"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -169,6 +172,29 @@ func (h *Handler) unmarshalHttpRequest(r *http.Request) (*graphql.Request, error
 	if result, _ := gqlRequest.Normalize(h.schema); !result.Successful {
 		return nil, result.Errors
 	}
+
+	operation, _ := astparser.ParseGraphqlDocumentString(gqlRequest.Query)
+	numOfOperations := operation.NumOfOperationDefinitions()
+	operationName := strings.TrimSpace(gqlRequest.OperationName)
+	report := &operationreport.Report{}
+
+	if operationName == "" && numOfOperations > 1 {
+		report.AddExternalError(operationreport.ErrRequiredOperationNameIsMissing())
+
+		return nil, report
+	}
+
+	if operationName == "" && numOfOperations == 1 {
+		operationName = operation.OperationDefinitionNameString(0)
+	}
+
+	if !operation.OperationNameExists(operationName) {
+		report.AddExternalError(operationreport.ErrOperationWithProvidedOperationNameNotFound(operationName))
+
+		return nil, report
+	}
+
+	gqlRequest.OperationName = operationName
 
 	return gqlRequest, nil
 }

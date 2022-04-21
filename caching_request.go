@@ -5,14 +5,11 @@ import (
 	"github.com/jensneuse/graphql-go-tools/pkg/astnormalization"
 	"github.com/jensneuse/graphql-go-tools/pkg/astparser"
 	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
-	"github.com/jensneuse/graphql-go-tools/pkg/operationreport"
 	"github.com/pquerna/cachecontrol/cacheobject"
 	"net/http"
-	"strings"
 )
 
 type cachingRequest struct {
-	operationName         string
 	httpRequest           *http.Request
 	schema                *graphql.Schema
 	gqlRequest            *graphql.Request
@@ -28,56 +25,41 @@ func newCachingRequest(r *http.Request, d *ast.Document, s *graphql.Schema, gr *
 		gqlRequest:  gr,
 	}
 
-	operation, report := astparser.ParseGraphqlDocumentString(gr.Query)
+	cacheControlString := r.Header.Get("cache-control")
+	cr.cacheControl, _ = cacheobject.ParseRequestCacheControl(cacheControlString)
+
+	return cr, nil
+}
+
+func (r *cachingRequest) initOperation() error {
+	if r.operation != nil {
+		return nil
+	}
+
+	operation, report := astparser.ParseGraphqlDocumentString(r.gqlRequest.Query)
 
 	if report.HasErrors() {
-		return nil, &report
+		return &report
 	}
 
-	report.Reset()
-
-	operation.Input.Variables = gr.Variables
-	numOfOperations := operation.NumOfOperationDefinitions()
-	operationName := strings.TrimSpace(gr.OperationName)
-
-	if len(operationName) == 0 && numOfOperations > 1 {
-		report.AddExternalError(operationreport.ErrRequiredOperationNameIsMissing())
-
-		return nil, &report
-	}
-
-	if len(operationName) == 0 && numOfOperations == 1 {
-		operationName = operation.OperationDefinitionNameString(0)
-	}
-
-	if !operation.OperationNameExists(operationName) {
-		report.AddExternalError(operationreport.ErrOperationWithProvidedOperationNameNotFound(operationName))
-
-		return nil, &report
-	}
-
-	report.Reset()
-
+	operation.Input.Variables = r.gqlRequest.Variables
 	normalizer := astnormalization.NewWithOpts(
 		astnormalization.WithExtractVariables(),
 		astnormalization.WithRemoveFragmentDefinitions(),
 		astnormalization.WithRemoveUnusedVariables(),
 	)
 
-	if len(operationName) > 0 {
-		normalizer.NormalizeNamedOperation(&operation, d, []byte(operationName), &report)
+	if r.gqlRequest.OperationName != "" {
+		normalizer.NormalizeNamedOperation(&operation, r.definition, []byte(r.gqlRequest.OperationName), &report)
 	} else {
-		normalizer.NormalizeOperation(&operation, d, &report)
+		normalizer.NormalizeOperation(&operation, r.definition, &report)
 	}
 
 	if report.HasErrors() {
-		return nil, &report
+		return &report
 	}
 
-	cr.operationName = operationName
-	cr.operation = &operation
-	cacheControlString := r.Header.Get("cache-control")
-	cr.cacheControl, _ = cacheobject.ParseRequestCacheControl(cacheControlString)
+	r.operation = &operation
 
-	return cr, nil
+	return nil
 }
