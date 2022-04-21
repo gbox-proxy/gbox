@@ -26,7 +26,7 @@ type cachingQueryResult struct {
 	Expiration time.Duration
 	MaxAge     *caddy.Duration
 	Swr        *caddy.Duration
-	Tags       []string
+	Tags       cachingTags
 
 	plan *cachingPlan
 }
@@ -57,7 +57,7 @@ func (c *Caching) cachingQueryResult(request *cachingRequest, plan *cachingPlan,
 		CreatedAt: time.Now(),
 		MaxAge:    plan.MaxAge,
 		Swr:       plan.Swr,
-		Tags:      tags.ToSlice(),
+		Tags:      tags,
 	}
 
 	result.normalizeHeader()
@@ -85,7 +85,7 @@ func (r *cachingQueryResult) Status() cachingQueryResultStatus {
 
 func (r *cachingQueryResult) storeOpts() *store.Options {
 	return &store.Options{
-		Tags:       r.Tags,
+		Tags:       r.Tags.ToSlice(),
 		Expiration: r.Expiration,
 	}
 }
