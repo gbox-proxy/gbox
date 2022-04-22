@@ -6,7 +6,6 @@ import (
 	"github.com/caddyserver/caddy/v2"
 	"github.com/eko/gocache/v2/store"
 	"github.com/pquerna/cachecontrol/cacheobject"
-	"go.uber.org/zap"
 	"net/http"
 	"time"
 )
@@ -69,18 +68,12 @@ func (c *Caching) cachingQueryResult(ctx context.Context, request *cachingReques
 	})
 }
 
-func (c *Caching) increaseQueryResultHitTimes(ctx context.Context, r *cachingQueryResult) {
+func (c *Caching) increaseQueryResultHitTimes(ctx context.Context, r *cachingQueryResult) error {
 	r.HitTime++
 
-	go func() {
-		err := c.store.Set(ctx, r.plan.queryResultCacheKey, r, &store.Options{
-			Expiration: r.Expiration - time.Since(r.CreatedAt),
-		})
-
-		if err != nil {
-			c.logger.Error("increase query result hit times failed", zap.String("cache_key", r.plan.queryResultCacheKey), zap.Error(err))
-		}
-	}()
+	return c.store.Set(ctx, r.plan.queryResultCacheKey, r, &store.Options{
+		Expiration: r.Expiration - time.Since(r.CreatedAt),
+	})
 }
 
 func (r *cachingQueryResult) Status() cachingQueryResultStatus {

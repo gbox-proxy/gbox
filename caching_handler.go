@@ -132,7 +132,11 @@ func (c *Caching) resolvePlan(r *cachingRequest, p *cachingPlan) (CachingStatus,
 	result, _ := c.getCachingQueryResult(r.httpRequest.Context(), p)
 
 	if result != nil && (r.cacheControl == nil || result.ValidFor(r.cacheControl)) {
-		c.increaseQueryResultHitTimes(r.httpRequest.Context(), result)
+		err := c.increaseQueryResultHitTimes(r.httpRequest.Context(), result)
+
+		if err != nil {
+			c.logger.Error("increase query result hit times failed", zap.String("cache_key", p.queryResultCacheKey), zap.Error(err))
+		}
 
 		return CachingStatusHit, result
 	}
@@ -229,10 +233,14 @@ func (c *Caching) handleMutationRequest(w http.ResponseWriter, r *cachingRequest
 	if err := tagAnalyzer.AnalyzeResult(crw.buffer.Bytes(), nil, foundTags); err != nil {
 		c.logger.Info("fail to analyze result tags", zap.Error(err))
 
-		return nil
+		return
 	}
 
 	purgeTags := foundTags.TypeKeys().ToSlice()
+
+	if len(purgeTags) == 0 {
+		return
+	}
 
 	if c.DebugHeaders {
 		w.Header().Set("x-debug-purging-tags", strings.Join(purgeTags, "; "))
