@@ -2,7 +2,13 @@
 
 package model
 
+type BookTest struct {
+	ID    int    `json:"id"`
+	Title string `json:"title"`
+}
+
 type UserTest struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
+	ID    int         `json:"id"`
+	Name  string      `json:"name"`
+	Books []*BookTest `json:"books"`
 }

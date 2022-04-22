@@ -43,17 +43,24 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	BookTest struct {
+		ID    func(childComplexity int) int
+		Title func(childComplexity int) int
+	}
+
 	MutationTest struct {
 		UpdateUsers func(childComplexity int) int
 	}
 
 	QueryTest struct {
+		Books func(childComplexity int) int
 		Users func(childComplexity int) int
 	}
 
 	UserTest struct {
-		ID   func(childComplexity int) int
-		Name func(childComplexity int) int
+		Books func(childComplexity int) int
+		ID    func(childComplexity int) int
+		Name  func(childComplexity int) int
 	}
 }
 
@@ -62,6 +69,7 @@ type MutationTestResolver interface {
 }
 type QueryTestResolver interface {
 	Users(ctx context.Context) ([]*model.UserTest, error)
+	Books(ctx context.Context) ([]*model.BookTest, error)
 }
 
 type executableSchema struct {
@@ -79,6 +87,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	_ = ec
 	switch typeName + "." + field {
 
+	case "BookTest.id":
+		if e.complexity.BookTest.ID == nil {
+			break
+		}
+
+		return e.complexity.BookTest.ID(childComplexity), true
+
+	case "BookTest.title":
+		if e.complexity.BookTest.Title == nil {
+			break
+		}
+
+		return e.complexity.BookTest.Title(childComplexity), true
+
 	case "MutationTest.updateUsers":
 		if e.complexity.MutationTest.UpdateUsers == nil {
 			break
@@ -86,12 +108,26 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.MutationTest.UpdateUsers(childComplexity), true
 
+	case "QueryTest.books":
+		if e.complexity.QueryTest.Books == nil {
+			break
+		}
+
+		return e.complexity.QueryTest.Books(childComplexity), true
+
 	case "QueryTest.users":
 		if e.complexity.QueryTest.Users == nil {
 			break
 		}
 
 		return e.complexity.QueryTest.Users(childComplexity), true
+
+	case "UserTest.books":
+		if e.complexity.UserTest.Books == nil {
+			break
+		}
+
+		return e.complexity.UserTest.Books(childComplexity), true
 
 	case "UserTest.id":
 		if e.complexity.UserTest.ID == nil {
@@ -176,13 +212,20 @@ var sources = []*ast.Source{
   mutation: MutationTest
 }
 
+type BookTest {
+  id: ID!
+  title: String!
+}
+
 type UserTest {
   id: ID!
   name: String!
+  books: [BookTest!]!
 }
 
 type QueryTest {
   users: [UserTest!]!
+  books: [BookTest!]!
 }
 
 type MutationTest {
@@ -247,6 +290,76 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
+
+func (ec *executionContext) _BookTest_id(ctx context.Context, field graphql.CollectedField, obj *model.BookTest) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "BookTest",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNID2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _BookTest_title(ctx context.Context, field graphql.CollectedField, obj *model.BookTest) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "BookTest",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Title, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
 
 func (ec *executionContext) _MutationTest_updateUsers(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
@@ -316,6 +429,41 @@ func (ec *executionContext) _QueryTest_users(ctx context.Context, field graphql.
 	res := resTmp.([]*model.UserTest)
 	fc.Result = res
 	return ec.marshalNUserTest2ᚕᚖgithubᚗcomᚋgboxᚑproxyᚋgboxᚋinternalᚋtestserverᚋmodelᚐUserTestᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _QueryTest_books(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "QueryTest",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.QueryTest().Books(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.BookTest)
+	fc.Result = res
+	return ec.marshalNBookTest2ᚕᚖgithubᚗcomᚋgboxᚑproxyᚋgboxᚋinternalᚋtestserverᚋmodelᚐBookTestᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _QueryTest___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -457,6 +605,41 @@ func (ec *executionContext) _UserTest_name(ctx context.Context, field graphql.Co
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _UserTest_books(ctx context.Context, field graphql.CollectedField, obj *model.UserTest) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "UserTest",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Books, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.BookTest)
+	fc.Result = res
+	return ec.marshalNBookTest2ᚕᚖgithubᚗcomᚋgboxᚑproxyᚋgboxᚋinternalᚋtestserverᚋmodelᚐBookTestᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -1653,6 +1836,47 @@ func (ec *executionContext) ___Type_specifiedByURL(ctx context.Context, field gr
 
 // region    **************************** object.gotpl ****************************
 
+var bookTestImplementors = []string{"BookTest"}
+
+func (ec *executionContext) _BookTest(ctx context.Context, sel ast.SelectionSet, obj *model.BookTest) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, bookTestImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("BookTest")
+		case "id":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._BookTest_id(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "title":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._BookTest_title(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var mutationTestImplementors = []string{"MutationTest"}
 
 func (ec *executionContext) _MutationTest(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -1735,6 +1959,29 @@ func (ec *executionContext) _QueryTest(ctx context.Context, sel ast.SelectionSet
 			out.Concurrently(i, func() graphql.Marshaler {
 				return rrm(innerCtx)
 			})
+		case "books":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._QueryTest_books(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
 		case "__type":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._QueryTest___type(ctx, field)
@@ -1783,6 +2030,16 @@ func (ec *executionContext) _UserTest(ctx context.Context, sel ast.SelectionSet,
 		case "name":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._UserTest_name(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "books":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._UserTest_books(ctx, field, obj)
 			}
 
 			out.Values[i] = innerFunc(ctx)
@@ -2223,6 +2480,60 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 // endregion **************************** object.gotpl ****************************
 
 // region    ***************************** type.gotpl *****************************
+
+func (ec *executionContext) marshalNBookTest2ᚕᚖgithubᚗcomᚋgboxᚑproxyᚋgboxᚋinternalᚋtestserverᚋmodelᚐBookTestᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.BookTest) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNBookTest2ᚖgithubᚗcomᚋgboxᚑproxyᚋgboxᚋinternalᚋtestserverᚋmodelᚐBookTest(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNBookTest2ᚖgithubᚗcomᚋgboxᚑproxyᚋgboxᚋinternalᚋtestserverᚋmodelᚐBookTest(ctx context.Context, sel ast.SelectionSet, v *model.BookTest) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._BookTest(ctx, sel, v)
+}
 
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)

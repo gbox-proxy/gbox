@@ -3,13 +3,20 @@ schema {
   mutation: MutationTest
 }
 
+type BookTest {
+  id: ID!
+  title: String!
+}
+
 type UserTest {
   id: ID!
   name: String!
+  books: [BookTest!]!
 }
 
 type QueryTest {
   users: [UserTest!]!
+  books: [BookTest!]!
 }
 
 type MutationTest {
