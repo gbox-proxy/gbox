@@ -56,9 +56,10 @@ func (c *wsMetricsConn) Read(b []byte) (n int, err error) {
 	}
 
 	buff := bufferPool.Get().(*bytes.Buffer)
+	defer bufferPool.Put(buff)
 	buff.Reset()
 	buff.Write(b[:n])
-	defer bufferPool.Put(buff)
+
 	r := wsutil.NewServerSideReader(buff)
 	hdr, e := r.NextFrame()
 
@@ -90,10 +91,9 @@ func (c *wsMetricsConn) Read(b []byte) (n int, err error) {
 			return
 		}
 
-		if e = c.addMetricsBeginRequest(request); e == nil {
-			c.request = request
-			c.subscribeAt = time.Now()
-		}
+		c.request = request
+		c.subscribeAt = time.Now()
+		c.addMetricsBeginRequest(request)
 	}
 
 	return

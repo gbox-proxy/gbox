@@ -4,6 +4,7 @@ import (
 	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"go.uber.org/zap"
 	"sync"
 	"time"
 )
@@ -71,76 +72,76 @@ type Metrics struct {
 }
 
 type requestMetrics interface {
-	addMetricsBeginRequest(*graphql.Request) error
-	addMetricsEndRequest(*graphql.Request, time.Duration) error
+	addMetricsBeginRequest(*graphql.Request)
+	addMetricsEndRequest(*graphql.Request, time.Duration)
 }
 
 type cacheMetrics interface {
-	addMetricsCacheHit(*graphql.Request) error
-	addMetricsCacheMiss(*graphql.Request) error
-	addMetricsCachePass(*graphql.Request) error
+	addMetricsCacheHit(*graphql.Request)
+	addMetricsCacheMiss(*graphql.Request)
+	addMetricsCachePass(*graphql.Request)
 }
 
-func (h *Handler) addMetricsBeginRequest(request *graphql.Request) error {
+func (h *Handler) addMetricsBeginRequest(request *graphql.Request) {
 	labels, err := h.metricsOperationLabels(request)
 
 	if err != nil {
-		return err
+		h.logger.Warn("fail to get metrics operation labels", zap.Error(err))
+
+		return
 	}
 
 	h.metrics.operationCount.With(labels).Inc()
 	h.metrics.operationInFlight.With(labels).Inc()
-
-	return nil
 }
 
-func (h *Handler) addMetricsEndRequest(request *graphql.Request, d time.Duration) error {
+func (h *Handler) addMetricsEndRequest(request *graphql.Request, d time.Duration) {
 	labels, err := h.metricsOperationLabels(request)
 
 	if err != nil {
-		return err
+		h.logger.Warn("fail to get metrics operation labels", zap.Error(err))
+
+		return
 	}
 
 	h.metrics.operationInFlight.With(labels).Dec()
 	h.metrics.operationDuration.With(labels).Observe(d.Seconds())
-
-	return nil
 }
 
-func (h *Handler) addMetricsCacheHit(request *graphql.Request) error {
+func (h *Handler) addMetricsCacheHit(request *graphql.Request) {
 	labels, err := h.metricsCacheLabels(request)
 
 	if err != nil {
-		return err
+		h.logger.Warn("fail to get metrics cache labels", zap.Error(err))
+
+		return
 	}
 
 	h.metrics.cacheHits.With(labels).Inc()
-
-	return nil
 }
 
-func (h *Handler) addMetricsCacheMiss(request *graphql.Request) error {
+func (h *Handler) addMetricsCacheMiss(request *graphql.Request) {
 	labels, err := h.metricsCacheLabels(request)
 
 	if err != nil {
-		return err
+		h.logger.Warn("fail to get metrics cache labels", zap.Error(err))
+
+		return
 	}
 
 	h.metrics.cacheMisses.With(labels).Inc()
-
-	return nil
 }
 
-func (h *Handler) addMetricsCachePass(request *graphql.Request) error {
+func (h *Handler) addMetricsCachePass(request *graphql.Request) {
 	labels, err := h.metricsCacheLabels(request)
 
 	if err != nil {
-		return err
+		h.logger.Warn("fail to get metrics cache labels", zap.Error(err))
+
+		return
 	}
 
 	h.metrics.cachePasses.With(labels).Inc()
-
-	return nil
 }
 
 func (h *Handler) metricsCacheLabels(request *graphql.Request) (map[string]string, error) {

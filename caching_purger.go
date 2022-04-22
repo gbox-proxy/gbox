@@ -10,19 +10,6 @@ import (
 	"strconv"
 )
 
-func (c *Caching) purgeQueryResultByMutationResult(request *cachingRequest, result []byte) (err error) {
-	foundTags := make(cachingTags)
-	tagAnalyzer := newCachingTagAnalyzer(request, c.TypeKeys)
-
-	if err = tagAnalyzer.AnalyzeResult(result, nil, foundTags); err != nil {
-		return err
-	}
-
-	purgeTags := foundTags.TypeKeys().ToSlice()
-
-	return c.purgeQueryResultByTags(c.ctxBackground, purgeTags)
-}
-
 func (c *Caching) purgeQueryResultBySchema(ctx context.Context, schema *graphql.Schema) error {
 	hash, _ := schema.Hash()
 	tag := fmt.Sprintf(cachingTagSchemaHashPattern, hash)

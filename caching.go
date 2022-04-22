@@ -51,6 +51,10 @@ type Caching struct {
 	// of this query have type User with id's 3, all cached query result related with id 3 of User type will be purged.
 	AutoInvalidate bool
 
+	// Add debug headers like query result cache key,
+	// plan cache key and query result had types keys or not...
+	DebugHeaders bool
+
 	logger              *zap.Logger
 	store               *CachingStore
 	ctxBackground       context.Context
