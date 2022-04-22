@@ -22,6 +22,7 @@ services:
       GBOX_ENABLED_METRICS: 'true'
       GBOX_GLOBAL_DIRECTIVES: |
         debug
+        admin off
   redis:
     image: redis
     ports:

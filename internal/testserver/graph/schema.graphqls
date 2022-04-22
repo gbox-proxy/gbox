@@ -1,0 +1,17 @@
+schema {
+  query: QueryTest
+  mutation: MutationTest
+}
+
+type UserTest {
+  id: ID!
+  name: String!
+}
+
+type QueryTest {
+  users: [UserTest!]!
+}
+
+type MutationTest {
+  updateUsers: [UserTest!]!
+}

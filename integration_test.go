@@ -1,14 +1,19 @@
 package gbox
 
 import (
+	"context"
 	"fmt"
+	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/caddyserver/caddy/v2/caddytest"
+	"github.com/gbox-proxy/gbox/internal/testserver/graph"
+	"github.com/gbox-proxy/gbox/internal/testserver/graph/generated"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 )
 
 const (
@@ -20,7 +25,7 @@ const (
 	localhost:9090 {
 		route {
 			gbox {
-				upstream https://countries.trevorblades.com
+				upstream http://localhost:9091
 				%s
 			}
 		}
@@ -30,6 +35,26 @@ const (
 
 type IntegrationTestSuite struct {
 	suite.Suite
+	upstreamMockServer *http.Server
+}
+
+func (s *IntegrationTestSuite) BeforeTest(suiteName, testName string) {
+	gqlServer := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{}}))
+	s.upstreamMockServer = &http.Server{
+		Addr:    "localhost:9091",
+		Handler: gqlServer,
+	}
+
+	go func() {
+		s.upstreamMockServer.ListenAndServe()
+	}()
+
+	<-time.After(time.Millisecond * 10)
+}
+
+func (s *IntegrationTestSuite) AfterTest(suiteName, testName string) {
+	s.NoError(s.upstreamMockServer.Shutdown(context.Background()))
+	s.upstreamMockServer = nil
 }
 
 func (s *IntegrationTestSuite) TestDisabledIntrospectionAndComplexity() {
@@ -60,7 +85,7 @@ complexity {
 	max_complexity 1
 }
 `,
-			expectedBody: `{"data":{"__schema":{"queryType":{"name":"Query"}}}}`,
+			expectedBody: `{"data":{"__schema":{"queryType":{"name":"QueryTest"}}}}`,
 		},
 	}
 

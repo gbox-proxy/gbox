@@ -1,25 +1,29 @@
 # Where are all the schema files located? globs are supported eg  src/**/*.graphqls
 schema:
-  - admin/*.graphqls
+  - graph/*.graphqls
 
 # Where should the generated server code go?
 exec:
-  filename: admin/generated/generated.go
+  filename: graph/generated/generated.go
   package: generated
 
-#
-## Where should any generated models go?
-#model:
-#  filename: admin/model/models_gen.go
-#  package: model
+# Uncomment to enable federation
+# federation:
+#   filename: graph/generated/federation.go
+#   package: generated
+
+# Where should any generated models go?
+model:
+  filename: graph/model/models_gen.go
+  package: model
 
 # Where should the resolver implementations go?
 resolver:
   layout: follow-schema
-  dir: admin
-  package: admin
+  dir: graph
+  package: graph
 
-# Optional: turn on use `gqlgen:"fieldName"` tags in your models
+# Optional: turn on use ` + "`" + `gqlgen:"fieldName"` + "`" + ` tags in your models
 # struct_tag: json
 
 # Optional: turn on to use []Thing instead of []*Thing
@@ -31,7 +35,7 @@ resolver:
 # gqlgen will search for any type names in the schema in these go packages
 # if they match it will use them, otherwise it will generate them.
 autobind:
-#  - "github.com/gbox-proxy/gbox/admin/model"
+#  - "github.com/gbox-proxy/gbox/internal/testserver/graph/model"
 
 # This section declares type mapping between the GraphQL and go type systems
 #
@@ -41,12 +45,7 @@ autobind:
 models:
   ID:
     model:
-      - github.com/99designs/gqlgen/graphql.ID
       - github.com/99designs/gqlgen/graphql.Int
-      - github.com/99designs/gqlgen/graphql.Int64
-      - github.com/99designs/gqlgen/graphql.Int32
   Int:
     model:
       - github.com/99designs/gqlgen/graphql.Int
-      - github.com/99designs/gqlgen/graphql.Int64
-      - github.com/99designs/gqlgen/graphql.Int32

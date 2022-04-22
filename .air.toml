@@ -3,10 +3,10 @@ testdata_dir = "testdata"
 tmp_dir = "tmp"
 
 [build]
-  bin = "./tmp/gbox run -config ./Caddyfile -watch"
+  bin = "./tmp/gbox run -config ./Caddyfile.dist -watch"
   cmd = "go build -o ./tmp/gbox ./cmd"
   delay = 1000
-  exclude_dir = ["assets", "tmp", "vendor", "testdata"]
+  exclude_dir = ["assets", "tmp", "vendor", "testdata", "internal/testserver"]
   exclude_file = []
   exclude_regex = ["_test.go"]
   exclude_unchanged = false
