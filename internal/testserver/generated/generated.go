@@ -12,7 +12,7 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
-	"github.com/gbox-proxy/gbox/internal/testserver/graph/model"
+	"github.com/gbox-proxy/gbox/internal/testserver/model"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
 )
@@ -171,7 +171,7 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	{Name: "graph/schema.graphqls", Input: `schema {
+	{Name: "schema.graphqls", Input: `schema {
   query: QueryTest
   mutation: MutationTest
 }
@@ -280,7 +280,7 @@ func (ec *executionContext) _MutationTest_updateUsers(ctx context.Context, field
 	}
 	res := resTmp.([]*model.UserTest)
 	fc.Result = res
-	return ec.marshalNUserTest2ᚕᚖgithubᚗcomᚋgboxᚑproxyᚋgboxᚋinternalᚋtestserverᚋgraphᚋmodelᚐUserTestᚄ(ctx, field.Selections, res)
+	return ec.marshalNUserTest2ᚕᚖgithubᚗcomᚋgboxᚑproxyᚋgboxᚋinternalᚋtestserverᚋmodelᚐUserTestᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _QueryTest_users(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -315,7 +315,7 @@ func (ec *executionContext) _QueryTest_users(ctx context.Context, field graphql.
 	}
 	res := resTmp.([]*model.UserTest)
 	fc.Result = res
-	return ec.marshalNUserTest2ᚕᚖgithubᚗcomᚋgboxᚑproxyᚋgboxᚋinternalᚋtestserverᚋgraphᚋmodelᚐUserTestᚄ(ctx, field.Selections, res)
+	return ec.marshalNUserTest2ᚕᚖgithubᚗcomᚋgboxᚑproxyᚋgboxᚋinternalᚋtestserverᚋmodelᚐUserTestᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _QueryTest___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2269,7 +2269,7 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 	return res
 }
 
-func (ec *executionContext) marshalNUserTest2ᚕᚖgithubᚗcomᚋgboxᚑproxyᚋgboxᚋinternalᚋtestserverᚋgraphᚋmodelᚐUserTestᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.UserTest) graphql.Marshaler {
+func (ec *executionContext) marshalNUserTest2ᚕᚖgithubᚗcomᚋgboxᚑproxyᚋgboxᚋinternalᚋtestserverᚋmodelᚐUserTestᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.UserTest) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -2293,7 +2293,7 @@ func (ec *executionContext) marshalNUserTest2ᚕᚖgithubᚗcomᚋgboxᚑproxy�
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNUserTest2ᚖgithubᚗcomᚋgboxᚑproxyᚋgboxᚋinternalᚋtestserverᚋgraphᚋmodelᚐUserTest(ctx, sel, v[i])
+			ret[i] = ec.marshalNUserTest2ᚖgithubᚗcomᚋgboxᚑproxyᚋgboxᚋinternalᚋtestserverᚋmodelᚐUserTest(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -2313,7 +2313,7 @@ func (ec *executionContext) marshalNUserTest2ᚕᚖgithubᚗcomᚋgboxᚑproxy�
 	return ret
 }
 
-func (ec *executionContext) marshalNUserTest2ᚖgithubᚗcomᚋgboxᚑproxyᚋgboxᚋinternalᚋtestserverᚋgraphᚋmodelᚐUserTest(ctx context.Context, sel ast.SelectionSet, v *model.UserTest) graphql.Marshaler {
+func (ec *executionContext) marshalNUserTest2ᚖgithubᚗcomᚋgboxᚑproxyᚋgboxᚋinternalᚋtestserverᚋmodelᚐUserTest(ctx context.Context, sel ast.SelectionSet, v *model.UserTest) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")

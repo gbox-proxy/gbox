@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/caddyserver/caddy/v2/caddytest"
-	"github.com/gbox-proxy/gbox/internal/testserver/graph"
-	"github.com/gbox-proxy/gbox/internal/testserver/graph/generated"
+	"github.com/gbox-proxy/gbox/internal/testserver"
+	"github.com/gbox-proxy/gbox/internal/testserver/generated"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"io/ioutil"
@@ -39,7 +39,7 @@ type IntegrationTestSuite struct {
 }
 
 func (s *IntegrationTestSuite) BeforeTest(suiteName, testName string) {
-	gqlServer := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{}}))
+	gqlServer := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &testserver.Resolver{}}))
 	s.upstreamMockServer = &http.Server{
 		Addr:    "localhost:9091",
 		Handler: gqlServer,
