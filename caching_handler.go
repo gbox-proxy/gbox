@@ -230,8 +230,8 @@ func (c *Caching) handleMutationRequest(w http.ResponseWriter, r *cachingRequest
 	foundTags := make(cachingTags)
 	tagAnalyzer := newCachingTagAnalyzer(r, c.TypeKeys)
 
-	if err := tagAnalyzer.AnalyzeResult(crw.buffer.Bytes(), nil, foundTags); err != nil {
-		c.logger.Info("fail to analyze result tags", zap.Error(err))
+	if aErr := tagAnalyzer.AnalyzeResult(crw.buffer.Bytes(), nil, foundTags); aErr != nil {
+		c.logger.Info("fail to analyze result tags", zap.Error(aErr))
 
 		return
 	}
