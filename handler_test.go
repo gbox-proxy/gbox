@@ -182,9 +182,7 @@ caching {
 		user {
 			max_age 5m
 			types {
-				UserTest {
-					id
-				}
+				UserTest id
 			}
 		}
 	}

@@ -172,35 +172,11 @@ func (r *CachingRule) unmarshalCaddyfileTypes(d *caddyfile.Dispenser, desc strin
 				return fmt.Errorf("%s already specific", d.Val())
 			}
 
-			isNext := d.Next()
-			nextVal := d.Val()
+			fields := map[string]struct{}{}
+			args := d.RemainingArgs()
 
-			if isNext {
-				d.Prev()
-			}
-
-			if nextVal != "{" {
-				types[val] = map[string]struct{}{}
-				continue
-			}
-
-			fields := make(map[string]struct{})
-
-			for subNesting := d.Nesting(); d.NextBlock(subNesting); {
-				if d.Val() == "{" {
-					d.Prev()
-					field := d.Val()
-					d.Next()
-					return fmt.Errorf("caching.rules.%s: field %s of type %s invalid format", desc, field, val)
-				}
-
-				args := d.RemainingArgs()
-
-				for _, arg := range args {
-					fields[arg] = struct{}{}
-				}
-
-				fields[d.Val()] = struct{}{}
+			for _, arg := range args {
+				fields[arg] = struct{}{}
 			}
 
 			types[val] = fields
