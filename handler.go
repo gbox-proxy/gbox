@@ -92,10 +92,7 @@ func (h Handler) CaddyModule() caddy.ModuleInfo {
 func (h *Handler) Provision(ctx caddy.Context) (err error) {
 	h.metrics = metrics
 	h.logger = ctx.Logger(h)
-
-	if err = h.initRouter(); err != nil {
-		return err
-	}
+	h.initRouter()
 
 	var m interface{}
 

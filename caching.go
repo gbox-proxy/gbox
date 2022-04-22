@@ -19,8 +19,8 @@ type (
 
 const (
 	CachingStatusPass CachingStatus = "PASS"
-	CachingStatusHit                = "HIT"
-	CachingStatusMiss               = "MISS"
+	CachingStatusHit  CachingStatus = "HIT"
+	CachingStatusMiss CachingStatus = "MISS"
 )
 
 type Caching struct {
