@@ -91,10 +91,9 @@ func (c *wsMetricsConn) Read(b []byte) (n int, err error) {
 			return
 		}
 
-		if e = c.addMetricsBeginRequest(request); e == nil {
-			c.request = request
-			c.subscribeAt = time.Now()
-		}
+		c.request = request
+		c.subscribeAt = time.Now()
+		c.addMetricsBeginRequest(request)
 	}
 
 	return
