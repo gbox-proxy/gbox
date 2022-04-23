@@ -2,6 +2,14 @@
    {$GBOX_GLOBAL_DIRECTIVES}
 }
 
+(gbox_default_caching_rules) {
+    # default caching rules will match all types and public.
+    default {
+        max_age 30m
+        swr 30m
+    }
+}
+
 {$GBOX_SERVER_NAME:localhost}
 
 log
@@ -44,7 +52,7 @@ route {
             enabled {$GBOX_ENABLED_CACHING:true}
             store_dsn {$GBOX_STORE_DSN:freecache://?cache_size=5368709120}
             rules {
-                {$GBOX_CACHING_RULES}
+                {$GBOX_CACHING_RULES:import gbox_default_caching_rules}
             }
             varies {
                 {$GBOX_CACHING_VARIES}
