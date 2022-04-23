@@ -18,6 +18,14 @@ import (
 )
 
 const (
+	pureCaddyfile = `
+	{
+		http_port     9090
+		https_port    9443
+	}
+	localhost:9090 {
+	}
+`
 	caddyfilePattern = `
 	{
 		http_port     9090
@@ -36,26 +44,6 @@ const (
 
 type IntegrationTestSuite struct {
 	suite.Suite
-	upstreamMockServer *http.Server
-}
-
-func (s *IntegrationTestSuite) BeforeTest(suiteName, testName string) {
-	gqlServer := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &testserver.Resolver{}}))
-	s.upstreamMockServer = &http.Server{
-		Addr:    "localhost:9091",
-		Handler: gqlServer,
-	}
-
-	go func() {
-		s.upstreamMockServer.ListenAndServe()
-	}()
-
-	<-time.After(time.Millisecond * 10)
-}
-
-func (s *IntegrationTestSuite) AfterTest(suiteName, testName string) {
-	s.NoError(s.upstreamMockServer.Shutdown(context.Background()))
-	s.upstreamMockServer = nil
 }
 
 func (s *IntegrationTestSuite) TestComplexity() {
@@ -89,6 +77,7 @@ complexity {
 
 	for name, testCase := range testCases {
 		tester := caddytest.NewTester(s.T())
+		tester.InitServer(pureCaddyfile, "caddyfile")
 		tester.InitServer(fmt.Sprintf(caddyfilePattern, testCase.extraConfig), "caddyfile")
 
 		r, _ := http.NewRequest(
@@ -126,6 +115,7 @@ func (s *IntegrationTestSuite) TestIntrospection() {
 
 	for name, testCase := range testCases {
 		tester := caddytest.NewTester(s.T())
+		tester.InitServer(pureCaddyfile, "caddyfile")
 		tester.InitServer(fmt.Sprintf(caddyfilePattern, testCase.extraConfig), "caddyfile")
 
 		r, _ := http.NewRequest(
@@ -143,7 +133,7 @@ func (s *IntegrationTestSuite) TestIntrospection() {
 	}
 }
 
-func (s *IntegrationTestSuite) TestCachingStatus() {
+func (s *IntegrationTestSuite) TestCachingPassAndMiss() {
 	const payload = `{"query": "query { users { name } }"}`
 
 	testCases := map[string]struct {
@@ -155,7 +145,7 @@ func (s *IntegrationTestSuite) TestCachingStatus() {
 			extraConfig: `
 caching {
 }
-`,
+		`,
 			expectedCachingStatus: CachingStatusPass,
 			expectedBody:          `{"data":{"users":[{"name":"A"},{"name":"B"},{"name":"C"}]}}`,
 		},
@@ -171,7 +161,7 @@ caching {
 		}
 	}
 }
-`,
+		`,
 			expectedCachingStatus: CachingStatusPass,
 			expectedBody:          `{"data":{"users":[{"name":"A"},{"name":"B"},{"name":"C"}]}}`,
 		},
@@ -187,13 +177,14 @@ caching {
 		}
 	}
 }
-`,
+		`,
 			expectedCachingStatus: CachingStatusPass,
 			expectedBody:          `{"data":{"users":[{"name":"A"},{"name":"B"},{"name":"C"}]}}`,
 		},
-		"miss_on_first_time": {
+		"miss_on_match_type": {
 			extraConfig: `
 caching {
+	debug_headers true
 	rules {
 		user {
 			max_age 5m
@@ -207,28 +198,29 @@ caching {
 			expectedCachingStatus: CachingStatusMiss,
 			expectedBody:          `{"data":{"users":[{"name":"A"},{"name":"B"},{"name":"C"}]}}`,
 		},
-		"hit_on_second_time": {
+		"miss_on_match_type_field": {
 			extraConfig: `
 caching {
+	debug_headers true
 	rules {
 		user {
 			max_age 5m
 			types {
-				UserTest
+				UserTest name
 			}
 		}
 	}
 }
 `,
-			expectedCachingStatus: CachingStatusHit,
+			expectedCachingStatus: CachingStatusMiss,
 			expectedBody:          `{"data":{"users":[{"name":"A"},{"name":"B"},{"name":"C"}]}}`,
 		},
 	}
 
 	for name, testCase := range testCases {
 		tester := caddytest.NewTester(s.T())
+		tester.InitServer(pureCaddyfile, "caddyfile")
 		tester.InitServer(fmt.Sprintf(caddyfilePattern, testCase.extraConfig), "caddyfile")
-
 		r, _ := http.NewRequest(
 			"POST",
 			"http://localhost:9090/graphql",
@@ -248,6 +240,18 @@ caching {
 }
 
 func TestIntegration(t *testing.T) {
-	s := new(IntegrationTestSuite)
-	suite.Run(t, s)
+	h := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &testserver.Resolver{}}))
+	s := &http.Server{
+		Addr:    "localhost:9091",
+		Handler: h,
+	}
+	defer s.Shutdown(context.Background())
+
+	go func() {
+		s.ListenAndServe()
+	}()
+
+	<-time.After(time.Millisecond * 10)
+
+	suite.Run(t, new(IntegrationTestSuite))
 }

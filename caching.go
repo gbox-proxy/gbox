@@ -66,7 +66,7 @@ type cachingStoreDestructor struct {
 	store *CachingStore
 }
 
-func (c cachingStoreDestructor) Destruct() error {
+func (c *cachingStoreDestructor) Destruct() error {
 	return c.store.close()
 }
 
