@@ -98,7 +98,7 @@ func (r *cachingQueryResult) computeExpiration() {
 	r.Expiration = expiration
 }
 
-// ValidFor check caching result still valid with cache control cachingRequest directives
+// ValidFor check caching result still valid with cache control directives
 // https://datatracker.ietf.org/doc/html/rfc7234#section-5.2.1
 func (r *cachingQueryResult) ValidFor(cc *cacheobject.RequestCacheDirectives) bool {
 	status := r.Status()
