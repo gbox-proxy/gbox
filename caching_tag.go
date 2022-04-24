@@ -7,6 +7,7 @@ import (
 	"github.com/jensneuse/graphql-go-tools/pkg/astvisitor"
 	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
 	"github.com/jensneuse/graphql-go-tools/pkg/operationreport"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -83,10 +84,10 @@ func (c *cachingTagVisitor) addTagForTypeKey(field string, value interface{}, ty
 	switch v := value.(type) {
 	case string:
 		c.tags[fmt.Sprintf(cachingTagTypeKeyPattern, typeName, field, v)] = struct{}{}
-	case int:
-		c.tags[fmt.Sprintf(cachingTagTypeKeyPattern, typeName, field, strconv.Itoa(v))] = struct{}{}
+	case float64:
+		c.tags[fmt.Sprintf(cachingTagTypeKeyPattern, typeName, field, strconv.FormatInt(int64(v), 10))] = struct{}{}
 	default:
-		c.Walker.StopWithInternalErr(fmt.Errorf("invalid type key of %s.%s only accept string or int but got: %T", typeName, field, v))
+		c.Walker.StopWithInternalErr(fmt.Errorf("invalid type key of %s.%s only accept string or numeric but got: %T", typeName, field, v))
 	}
 }
 
@@ -183,6 +184,8 @@ func (t cachingTags) ToSlice() []string {
 	for item := range t {
 		s = append(s, item)
 	}
+
+	sort.Strings(s)
 
 	return s
 }
