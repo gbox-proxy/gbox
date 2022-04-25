@@ -114,8 +114,7 @@ func (c *Caching) unmarshalCaddyfileRules(d *caddyfile.Dispenser) error {
 						return err
 					}
 
-					duration := caddy.Duration(v)
-					rule.MaxAge = &duration
+					rule.MaxAge = caddy.Duration(v)
 				case "swr":
 					if !d.NextArg() {
 						return d.ArgErr()
@@ -127,8 +126,7 @@ func (c *Caching) unmarshalCaddyfileRules(d *caddyfile.Dispenser) error {
 						return err
 					}
 
-					duration := caddy.Duration(v)
-					rule.Swr = &duration
+					rule.Swr = caddy.Duration(v)
 				case "varies":
 					args := d.RemainingArgs()
 

@@ -13,7 +13,6 @@ import (
 	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
 	"github.com/jensneuse/graphql-go-tools/pkg/operationreport"
 	"github.com/jensneuse/graphql-go-tools/pkg/pool"
-	"time"
 )
 
 var (
@@ -22,8 +21,8 @@ var (
 )
 
 type cachingPlan struct {
-	MaxAge      *caddy.Duration
-	Swr         *caddy.Duration
+	MaxAge      caddy.Duration
+	Swr         caddy.Duration
 	VaryNames   map[string]struct{}
 	Types       map[string]struct{}
 	RulesHash   uint64
@@ -184,16 +183,12 @@ func (p *cachingPlanner) computePlan() (*cachingPlan, error) {
 			continue
 		}
 
-		if rule.MaxAge != nil {
-			if plan.MaxAge == nil || time.Duration(*plan.MaxAge) > time.Duration(*rule.MaxAge) {
-				plan.MaxAge = rule.MaxAge
-			}
+		if plan.MaxAge == 0 || plan.MaxAge > rule.MaxAge {
+			plan.MaxAge = rule.MaxAge
 		}
 
-		if rule.Swr != nil {
-			if plan.Swr == nil || time.Duration(*plan.Swr) > time.Duration(*rule.Swr) {
-				plan.Swr = rule.Swr
-			}
+		if plan.Swr == 0 || plan.Swr > rule.Swr {
+			plan.Swr = rule.Swr
 		}
 
 		for vary := range rule.Varies {

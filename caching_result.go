@@ -23,8 +23,8 @@ type cachingQueryResult struct {
 	HitTime    uint64
 	CreatedAt  time.Time
 	Expiration time.Duration
-	MaxAge     *caddy.Duration
-	Swr        *caddy.Duration
+	MaxAge     caddy.Duration
+	Swr        caddy.Duration
 	Tags       cachingTags
 
 	plan *cachingPlan
@@ -51,16 +51,16 @@ func (c *Caching) cachingQueryResult(ctx context.Context, request *cachingReques
 	}
 
 	result := &cachingQueryResult{
-		Body:      body,
-		Header:    header,
-		CreatedAt: time.Now(),
-		MaxAge:    plan.MaxAge,
-		Swr:       plan.Swr,
-		Tags:      tags,
+		Body:       body,
+		Header:     header,
+		CreatedAt:  time.Now(),
+		MaxAge:     plan.MaxAge,
+		Swr:        plan.Swr,
+		Tags:       tags,
+		Expiration: time.Duration(plan.MaxAge) + time.Duration(plan.Swr),
 	}
 
 	result.normalizeHeader()
-	result.computeExpiration()
 
 	return c.store.Set(ctx, plan.queryResultCacheKey, result, &store.Options{
 		Tags:       tags.ToSlice(),
@@ -77,25 +77,11 @@ func (c *Caching) increaseQueryResultHitTimes(ctx context.Context, r *cachingQue
 }
 
 func (r *cachingQueryResult) Status() cachingQueryResultStatus {
-	if r.Expiration == 0 || r.MaxAge == nil || time.Duration(*r.MaxAge) >= r.Age() {
+	if time.Duration(r.MaxAge) >= r.Age() {
 		return CachingQueryResultValid
 	}
 
 	return CachingQueryResultStale
-}
-
-func (r *cachingQueryResult) computeExpiration() {
-	var expiration time.Duration
-
-	if r.MaxAge != nil {
-		expiration += time.Duration(*r.MaxAge)
-	}
-
-	if r.Swr != nil {
-		expiration += time.Duration(*r.Swr)
-	}
-
-	r.Expiration = expiration
 }
 
 // ValidFor check caching result still valid with cache control directives
@@ -109,12 +95,8 @@ func (r *cachingQueryResult) ValidFor(cc *cacheobject.RequestCacheDirectives) bo
 	}
 
 	if cc.MinFresh != -1 {
-		var maxAge time.Duration
+		maxAge := time.Duration(r.MaxAge)
 		d := age + time.Duration(cc.MinFresh)*time.Second
-
-		if r.MaxAge != nil {
-			maxAge = time.Duration(*r.MaxAge)
-		}
 
 		if d > maxAge {
 			return false
@@ -150,7 +132,7 @@ func (r *cachingQueryResult) ValidFor(cc *cacheobject.RequestCacheDirectives) bo
 			return true
 		}
 
-		d := time.Duration(*r.MaxAge) + time.Duration(cc.MaxStale)*time.Second
+		d := time.Duration(r.MaxAge) + time.Duration(cc.MaxStale)*time.Second
 
 		return d >= age
 	}

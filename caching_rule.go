@@ -14,11 +14,11 @@ type CachingRule struct {
 	// If not set this rule will match all types.
 	Types graphql.RequestTypes `json:"types,omitempty"`
 
-	// how long query results that match the rule types should be cached, if not set query results will cache forever.
-	MaxAge *caddy.Duration `json:"max_age,omitempty"`
+	// how long query results that match the rule types should be store.
+	MaxAge caddy.Duration `json:"max_age,omitempty"`
 
 	// how long stale query results that match the rule types should be served while fresh data is already being fetched in the background.
-	Swr *caddy.Duration `json:"swr,omitempty"`
+	Swr caddy.Duration `json:"swr,omitempty"`
 
 	// Varies name apply to query results that match the rule types.
 	// If not set query results will cache public.

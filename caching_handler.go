@@ -169,15 +169,11 @@ func (c *Caching) addCachingResponseHeaders(s CachingStatus, r *cachingQueryResu
 
 	if s == CachingStatusHit {
 		age := int64(r.Age().Seconds())
-		cacheControl := []string{"public"}
+		maxAge := int64(time.Duration(r.MaxAge).Seconds())
+		cacheControl := []string{"public", fmt.Sprintf("s-maxage=%d", maxAge)}
 
-		if r.MaxAge != nil {
-			maxAge := int64(time.Duration(*r.MaxAge).Seconds())
-			cacheControl = append(cacheControl, fmt.Sprintf("s-maxage=%d", maxAge))
-		}
-
-		if r.Swr != nil {
-			swr := int64(time.Duration(*r.Swr).Seconds())
+		if r.Swr > 0 {
+			swr := int64(time.Duration(r.Swr).Seconds())
 			cacheControl = append(cacheControl, fmt.Sprintf("stale-while-revalidate=%d", swr))
 		}
 

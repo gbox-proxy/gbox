@@ -124,6 +124,10 @@ func (c *Caching) Validate() error {
 				return fmt.Errorf("caching rule %s, configured vary: %s does not exist", ruleName, vary)
 			}
 		}
+
+		if rule.MaxAge <= 0 {
+			return fmt.Errorf("caching rule %s, max age must greater than zero", ruleName)
+		}
 	}
 
 	return nil
