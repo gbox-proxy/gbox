@@ -160,7 +160,7 @@ func (h *Handler) onSchemaChanged(oldSchemaDocument, newSchemaDocument *ast.Docu
 	if h.Caching != nil && oldSchema != nil {
 		h.logger.Info("schema changed: purge all query result cached of old schema")
 
-		if err := h.Caching.purgeQueryResultBySchema(h.ctxBackground, oldSchema); err != nil {
+		if err := h.Caching.PurgeQueryResultBySchema(h.ctxBackground, oldSchema); err != nil {
 			h.logger.Error("purge all query result failed", zap.Error(err))
 		}
 	}

@@ -5,10 +5,19 @@ package admin
 
 import (
 	"context"
-
 	"github.com/gbox-proxy/gbox/admin/generated"
 	"go.uber.org/zap"
 )
+
+func (r *mutationResolver) PurgeAll(ctx context.Context) (bool, error) {
+	if err := r.purger.PurgeQueryResultBySchema(ctx, r.upstreamSchema); err != nil {
+		r.logger.Warn("fail to purge query result by operation name", zap.Error(err))
+
+		return false, nil
+	}
+
+	return true, nil
+}
 
 func (r *mutationResolver) PurgeOperation(ctx context.Context, name string) (bool, error) {
 	if err := r.purger.PurgeQueryResultByOperationName(ctx, name); err != nil {

@@ -43,6 +43,7 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Mutation struct {
+		PurgeAll            func(childComplexity int) int
 		PurgeOperation      func(childComplexity int, name string) int
 		PurgeQueryRootField func(childComplexity int, field string) int
 		PurgeType           func(childComplexity int, typeArg string) int
@@ -55,6 +56,7 @@ type ComplexityRoot struct {
 }
 
 type MutationResolver interface {
+	PurgeAll(ctx context.Context) (bool, error)
 	PurgeOperation(ctx context.Context, name string) (bool, error)
 	PurgeTypeKey(ctx context.Context, typeArg string, field string, key string) (bool, error)
 	PurgeQueryRootField(ctx context.Context, field string) (bool, error)
@@ -78,6 +80,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "Mutation.purgeAll":
+		if e.complexity.Mutation.PurgeAll == nil {
+			break
+		}
+
+		return e.complexity.Mutation.PurgeAll(childComplexity), true
 
 	case "Mutation.purgeOperation":
 		if e.complexity.Mutation.PurgeOperation == nil {
@@ -203,6 +212,7 @@ var sources = []*ast.Source{
 }
 
 type Mutation {
+    purgeAll: Boolean!
     purgeOperation(name: String!): Boolean!
     purgeTypeKey(type: String!, field: String!, key: ID!): Boolean!
     purgeQueryRootField(field: String!): Boolean!
@@ -345,6 +355,41 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
+
+func (ec *executionContext) _Mutation_purgeAll(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().PurgeAll(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
 
 func (ec *executionContext) _Mutation_purgeOperation(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
@@ -1833,6 +1878,16 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Mutation")
+		case "purgeAll":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_purgeAll(ctx, field)
+			}
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, innerFunc)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "purgeOperation":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_purgeOperation(ctx, field)
