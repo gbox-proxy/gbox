@@ -133,6 +133,62 @@ func (s *IntegrationTestSuite) TestIntrospection() {
 	}
 }
 
+func (s *IntegrationTestSuite) TestDisabledCaching() {
+	tester := caddytest.NewTester(s.T())
+	tester.InitServer(pureCaddyfile, "caddyfile")
+	tester.InitServer(fmt.Sprintf(caddyfilePattern, `
+caching {
+	enabled false
+	rules {
+		default {
+			max_age 1h
+		}
+	}
+}
+`), "caddyfile")
+	r, _ := http.NewRequest(
+		"POST",
+		"http://localhost:9090/graphql",
+		strings.NewReader(`{"query": "query UsersNameOnly { users { name } }"}`),
+	)
+	r.Header.Add("content-type", "application/json")
+	resp := tester.AssertResponseCode(r, http.StatusOK)
+	body, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+
+	s.Emptyf(resp.Header.Get("x-cache"), "x-cache header should not be set")
+	s.Equalf(`{"data":{"users":[{"name":"A"},{"name":"B"},{"name":"C"}]}}`, string(body), "unexpected response")
+}
+
+func (s *IntegrationTestSuite) TestNotCachingInvalidResponse() {
+	tester := caddytest.NewTester(s.T())
+	tester.InitServer(pureCaddyfile, "caddyfile")
+	tester.InitServer(fmt.Sprintf(caddyfilePattern, `
+caching {
+	rules {
+		default {
+			max_age 1h
+		}
+	}
+}
+`), "caddyfile")
+
+	for i := 0; i < 3; i++ {
+		r, _ := http.NewRequest(
+			"POST",
+			"http://localhost:9090/graphql",
+			strings.NewReader(`{"query": "query UsersNameOnly { users(invalid_filter: 123) { name } }"}`),
+		)
+		r.Header.Add("content-type", "application/json")
+		resp := tester.AssertResponseCode(r, http.StatusUnprocessableEntity)
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+
+		s.Equalf(string(CachingStatusMiss), resp.Header.Get("x-cache"), "cache status should be MISS at all")
+		s.Equalf(`{"errors":[{"message":"Unknown argument \"invalid_filter\" on field \"QueryTest.users\".","locations":[{"line":1,"column":23}],"extensions":{"code":"GRAPHQL_VALIDATION_FAILED"}}],"data":null}`, string(body), "unexpected response")
+	}
+}
+
 func (s *IntegrationTestSuite) TestCachingStatues() {
 	const payload = `{"query": "query { users { name } }"}`
 
@@ -687,6 +743,44 @@ caching {
 
 		resp.Body.Close()
 	}
+}
+
+func (s *IntegrationTestSuite) TestEnabledPlaygrounds() {
+	tester := caddytest.NewTester(s.T())
+	tester.InitServer(pureCaddyfile, "caddyfile")
+	tester.InitServer(fmt.Sprintf(caddyfilePattern, `
+disabled_playgrounds false
+`), "caddyfile")
+	r, _ := http.NewRequest("GET", "http://localhost:9090/", nil)
+	tester.AssertResponseCode(r, http.StatusOK)
+
+	r, _ = http.NewRequest("GET", "http://localhost:9090/admin", nil)
+	tester.AssertResponseCode(r, http.StatusNotFound) // when not enable caching, admin play ground should not affect.
+
+	tester.InitServer(fmt.Sprintf(caddyfilePattern, `
+disabled_playgrounds false
+caching {
+}
+`), "caddyfile")
+
+	r, _ = http.NewRequest("GET", "http://localhost:9090/admin", nil)
+	tester.AssertResponseCode(r, http.StatusOK) // now it should be enabled.
+
+	r, _ = http.NewRequest("GET", "http://localhost:9090", nil)
+	tester.AssertResponseCode(r, http.StatusOK)
+}
+
+func (s *IntegrationTestSuite) TestDisabledPlaygrounds() {
+	tester := caddytest.NewTester(s.T())
+	tester.InitServer(pureCaddyfile, "caddyfile")
+	tester.InitServer(fmt.Sprintf(caddyfilePattern, `
+disabled_playgrounds true
+`), "caddyfile")
+	r, _ := http.NewRequest("GET", "http://localhost:9090", nil)
+	tester.AssertResponseCode(r, http.StatusNotFound)
+
+	r, _ = http.NewRequest("GET", "http://localhost:9090/admin", nil)
+	tester.AssertResponseCode(r, http.StatusNotFound)
 }
 
 func TestIntegration(t *testing.T) {
