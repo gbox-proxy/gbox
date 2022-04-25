@@ -7,6 +7,8 @@ import (
 	"github.com/caddyserver/caddy/v2/caddytest"
 	"github.com/gbox-proxy/gbox/internal/testserver"
 	"github.com/gbox-proxy/gbox/internal/testserver/generated"
+	"github.com/prometheus/client_golang/prometheus"
+	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"io"
@@ -42,11 +44,11 @@ const (
 `
 )
 
-type IntegrationTestSuite struct {
+type HandlerIntegrationTestSuite struct {
 	suite.Suite
 }
 
-func (s *IntegrationTestSuite) TestComplexity() {
+func (s *HandlerIntegrationTestSuite) TestComplexity() {
 	testCases := map[string]struct {
 		extraConfig  string
 		payload      string
@@ -95,7 +97,7 @@ complexity {
 	}
 }
 
-func (s *IntegrationTestSuite) TestIntrospection() {
+func (s *HandlerIntegrationTestSuite) TestIntrospection() {
 	testCases := map[string]struct {
 		extraConfig  string
 		payload      string
@@ -133,7 +135,7 @@ func (s *IntegrationTestSuite) TestIntrospection() {
 	}
 }
 
-func (s *IntegrationTestSuite) TestDisabledCaching() {
+func (s *HandlerIntegrationTestSuite) TestDisabledCaching() {
 	tester := caddytest.NewTester(s.T())
 	tester.InitServer(pureCaddyfile, "caddyfile")
 	tester.InitServer(fmt.Sprintf(caddyfilePattern, `
@@ -160,7 +162,7 @@ caching {
 	s.Equalf(`{"data":{"users":[{"name":"A"},{"name":"B"},{"name":"C"}]}}`, string(body), "unexpected response")
 }
 
-func (s *IntegrationTestSuite) TestNotCachingInvalidResponse() {
+func (s *HandlerIntegrationTestSuite) TestNotCachingInvalidResponse() {
 	tester := caddytest.NewTester(s.T())
 	tester.InitServer(pureCaddyfile, "caddyfile")
 	tester.InitServer(fmt.Sprintf(caddyfilePattern, `
@@ -189,7 +191,7 @@ caching {
 	}
 }
 
-func (s *IntegrationTestSuite) TestCachingStatues() {
+func (s *HandlerIntegrationTestSuite) TestCachingStatues() {
 	const payload = `{"query": "query { users { name } }"}`
 
 	testCases := []struct {
@@ -327,7 +329,7 @@ caching {
 	}
 }
 
-func (s *IntegrationTestSuite) TestCachingSwr() {
+func (s *HandlerIntegrationTestSuite) TestCachingSwr() {
 	testCases := []struct {
 		name                  string
 		expectedHitTimes      string
@@ -401,7 +403,7 @@ caching {
 	}
 }
 
-func (s *IntegrationTestSuite) TestCachingEnabledAutoInvalidate() {
+func (s *HandlerIntegrationTestSuite) TestCachingEnabledAutoInvalidate() {
 	const payloadNameOnly = `{"query": "query UsersNameOnly { users { name } }"}`
 	const payload = `{"query": "query Users { users { id name } }"}`
 	const mutationPayload = `{"query": "mutation InvalidateUsers { updateUsers { id } }"}`
@@ -504,7 +506,7 @@ caching {
 	}
 }
 
-func (s *IntegrationTestSuite) TestCachingDisabledAutoInvalidate() {
+func (s *HandlerIntegrationTestSuite) TestCachingDisabledAutoInvalidate() {
 	const payload = `{"query": "query Users { users { id name } }"}`
 	const mutationPayload = `{"query": "mutation InvalidateUsers { updateUsers { id } }"}`
 	testCases := []struct {
@@ -581,7 +583,7 @@ caching {
 	}
 }
 
-func (s *IntegrationTestSuite) TestCachingVaries() {
+func (s *HandlerIntegrationTestSuite) TestCachingVaries() {
 	testCases := []struct {
 		name                  string
 		expectedHitTimes      string
@@ -745,7 +747,7 @@ caching {
 	}
 }
 
-func (s *IntegrationTestSuite) TestEnabledPlaygrounds() {
+func (s *HandlerIntegrationTestSuite) TestEnabledPlaygrounds() {
 	tester := caddytest.NewTester(s.T())
 	tester.InitServer(pureCaddyfile, "caddyfile")
 	tester.InitServer(fmt.Sprintf(caddyfilePattern, `
@@ -770,7 +772,7 @@ caching {
 	tester.AssertResponseCode(r, http.StatusOK)
 }
 
-func (s *IntegrationTestSuite) TestDisabledPlaygrounds() {
+func (s *HandlerIntegrationTestSuite) TestDisabledPlaygrounds() {
 	tester := caddytest.NewTester(s.T())
 	tester.InitServer(pureCaddyfile, "caddyfile")
 	tester.InitServer(fmt.Sprintf(caddyfilePattern, `
@@ -783,7 +785,88 @@ disabled_playgrounds true
 	tester.AssertResponseCode(r, http.StatusNotFound)
 }
 
-func TestIntegration(t *testing.T) {
+func (s *HandlerIntegrationTestSuite) TestMetrics() {
+	tester := caddytest.NewTester(s.T())
+	tester.InitServer(pureCaddyfile, "caddyfile")
+	tester.InitServer(fmt.Sprintf(caddyfilePattern, `
+caching {
+	rules {
+		default {
+			types {
+				UserTest
+			}
+			max_age 30m
+		}
+	}
+}
+`), "caddyfile")
+
+	for i := 1; i <= 3; i++ {
+		br, _ := http.NewRequest(
+			"POST",
+			"http://localhost:9090/graphql",
+			strings.NewReader(`{"query":"query GetBooksMetric { books { title } }"}`),
+		)
+		br.Header.Add("content-type", "application/json")
+		resp := tester.AssertResponseCode(br, http.StatusOK)
+		resp.Body.Close()
+
+		ur, _ := http.NewRequest(
+			"POST",
+			"http://localhost:9090/graphql",
+			strings.NewReader(`{"query":"query GetUsersMetric { users { name } }"}`),
+		)
+		ur.Header.Add("content-type", "application/json")
+		resp = tester.AssertResponseCode(ur, http.StatusOK)
+		resp.Body.Close()
+
+		var metricOut dto.Metric
+
+		c, ce := metrics.operationCount.GetMetricWith(prometheus.Labels{
+			"operation_name": "GetUsersMetric",
+			"operation_type": "query",
+		})
+
+		s.Require().NoError(ce)
+		s.Require().NoError(c.Write(&metricOut))
+		s.Require().Equal(float64(i), *metricOut.Counter.Value, "unexpected operation count metrics")
+
+		cm, cme := metrics.cacheMisses.GetMetricWith(prometheus.Labels{
+			"operation_name": "GetUsersMetric",
+		})
+
+		s.Require().NoError(cme)
+		s.Require().NoError(cm.Write(&metricOut))
+		s.Require().Equal(float64(1), *metricOut.Counter.Value, "unexpected cache miss metrics")
+
+		ch, che := metrics.cacheHits.GetMetricWith(prometheus.Labels{
+			"operation_name": "GetUsersMetric",
+		})
+
+		s.Require().NoError(che)
+		s.Require().NoError(ch.Write(&metricOut))
+		s.Require().Equal(float64(i-1), *metricOut.Counter.Value, "unexpected cache hits metrics")
+
+		cp, cpe := metrics.cachePasses.GetMetricWith(prometheus.Labels{
+			"operation_name": "GetBooksMetric",
+		})
+
+		s.Require().NoError(cpe)
+		s.Require().NoError(cp.Write(&metricOut), "can not write metric out")
+		s.Require().Equal(float64(i), *metricOut.Counter.Value, "unexpected cache passes metrics")
+
+		oi, oie := metrics.operationInFlight.GetMetricWith(prometheus.Labels{
+			"operation_name": "GetUsersMetric",
+			"operation_type": "query",
+		})
+
+		s.Require().NoError(oie)
+		s.Require().NoError(oi.Write(&metricOut), "can not write metric out")
+		s.Require().Equal(float64(0), *metricOut.Gauge.Value, "unexpected operation in flight metrics")
+	}
+}
+
+func TestHandlerIntegration(t *testing.T) {
 	h := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &testserver.Resolver{}}))
 	s := &http.Server{
 		Addr:    "localhost:9091",
@@ -797,5 +880,5 @@ func TestIntegration(t *testing.T) {
 
 	<-time.After(time.Millisecond * 10)
 
-	suite.Run(t, new(IntegrationTestSuite))
+	suite.Run(t, new(HandlerIntegrationTestSuite))
 }
