@@ -14,6 +14,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -863,6 +864,105 @@ caching {
 		s.Require().NoError(oie)
 		s.Require().NoError(oi.Write(&metricOut), "can not write metric out")
 		s.Require().Equal(float64(0), *metricOut.Gauge.Value, "unexpected operation in flight metrics")
+	}
+}
+
+func (s *HandlerIntegrationTestSuite) TestAdminPurgeQueryResult() {
+	testCases := []struct {
+		name       string
+		mutationOp string
+	}{
+		{
+			name:       "purge_all",
+			mutationOp: `{"query": "mutation { result: purgeAll }"}`,
+		},
+		{
+			name:       "purge_by_type",
+			mutationOp: `{"query": "mutation { result: purgeType(type: \"UserTest\") }"}`,
+		},
+		{
+			name:       "purge_by_type_key",
+			mutationOp: `{"query": "mutation { result: purgeTypeKey(type: \"UserTest\", field: \"id\", key: 1) }"}`,
+		},
+		{
+			name:       "purge_by_operation_name",
+			mutationOp: `{"query": "mutation { result: purgeOperation(name: \"GetUsers\") }"}`,
+		},
+		{
+			name:       "purge_by_query_root_field",
+			mutationOp: `{"query": "mutation { result: purgeQueryRootField(field: \"users\") }"}`,
+		},
+	}
+	tester := caddytest.NewTester(s.T())
+	tester.InitServer(pureCaddyfile, "caddyfile")
+	tester.InitServer(fmt.Sprintf(caddyfilePattern, `
+caching {
+	rules {
+		default {
+			max_age 1h
+		}
+	}
+}
+`), "caddyfile")
+
+	booksQueryFunc := func(expectedStatus CachingStatus) {
+		r, _ := http.NewRequest(
+			"POST",
+			"http://localhost:9090/graphql",
+			strings.NewReader(`{"query":"query GetBooks { books { title id } }"}`),
+		)
+		r.Header.Add("content-type", "application/json")
+		resp := tester.AssertResponseCode(r, http.StatusOK)
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+
+		expectedStatusString := string(expectedStatus)
+		s.Require().Equal(string(body), `{"data":{"books":[{"title":"A - Book 1","id":1},{"title":"A - Book 2","id":2},{"title":"B - Book 1","id":3},{"title":"C - Book 1","id":4}]}}`, "unexpected books response")
+		s.Require().Equalf(expectedStatusString, resp.Header.Get("x-cache"), "expected books query should be %s", expectedStatusString)
+	}
+
+	booksQueryFunc(CachingStatusMiss)
+
+	for _, testCase := range testCases {
+		for i := 0; i <= 3; i++ {
+			r, _ := http.NewRequest(
+				"POST",
+				"http://localhost:9090/graphql",
+				strings.NewReader(`{"query":"query GetUsers { users { id name } }"}`),
+			)
+			r.Header.Add("content-type", "application/json")
+			resp := tester.AssertResponseCode(r, http.StatusOK)
+			body, _ := io.ReadAll(resp.Body)
+			resp.Body.Close()
+
+			s.Require().Equal(string(body), `{"data":{"users":[{"id":1,"name":"A"},{"id":2,"name":"B"},{"id":3,"name":"C"}]}}`, "unexpected response")
+
+			if i == 0 {
+				// always miss on first time.
+				s.Require().Equal(string(CachingStatusMiss), resp.Header.Get("x-cache"), "cache status must MISS on first time")
+			} else {
+				s.Require().Equal(string(CachingStatusHit), resp.Header.Get("x-cache"), "cache status must HIT on next time")
+				s.Require().Equal(strconv.Itoa(i), resp.Header.Get("x-cache-hits"), "hit times not equal")
+			}
+		}
+
+		r, _ := http.NewRequest(
+			"POST",
+			"http://localhost:9090/admin/graphql",
+			strings.NewReader(testCase.mutationOp),
+		)
+		r.Header.Add("content-type", "application/json")
+		resp := tester.AssertResponseCode(r, http.StatusOK)
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+
+		s.Require().Equal(string(body), `{"data":{"result":true}}`, "case %s: unexpected purge result", testCase.name)
+
+		if testCase.name != "purge_all" {
+			booksQueryFunc(CachingStatusHit) // purge users result should not affect books result.
+		} else {
+			booksQueryFunc(CachingStatusMiss) // purge all should affect books result too.
+		}
 	}
 }
 
