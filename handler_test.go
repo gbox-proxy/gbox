@@ -9,7 +9,6 @@ import (
 	"github.com/gbox-proxy/gbox/internal/testserver/generated"
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"io"
 	"io/ioutil"
@@ -93,7 +92,7 @@ complexity {
 		resp := tester.AssertResponseCode(r, http.StatusOK)
 		respBody, _ := ioutil.ReadAll(resp.Body)
 
-		require.Equalf(s.T(), testCase.expectedBody, string(respBody), "case: %s", name)
+		s.Require().Equalf(testCase.expectedBody, string(respBody), "case: %s", name)
 		resp.Body.Close()
 	}
 }
@@ -131,7 +130,7 @@ func (s *HandlerIntegrationTestSuite) TestIntrospection() {
 		resp := tester.AssertResponseCode(r, http.StatusOK)
 		respBody, _ := io.ReadAll(resp.Body)
 
-		require.Equalf(s.T(), testCase.expectedBody, string(respBody), "case: %s", name)
+		s.Require().Equalf(testCase.expectedBody, string(respBody), "case: %s", name)
 		resp.Body.Close()
 	}
 }
@@ -323,8 +322,8 @@ caching {
 		respBody, _ := io.ReadAll(resp.Body)
 		actualStatus := resp.Header.Get("x-cache")
 
-		require.Equalf(s.T(), testCase.expectedBody, string(respBody), "case %s: unexpected payload", testCase.name)
-		require.Equalf(s.T(), string(testCase.expectedCachingStatus), actualStatus, "case %s: unexpected status", testCase.name)
+		s.Require().Equalf(testCase.expectedBody, string(respBody), "case %s: unexpected payload", testCase.name)
+		s.Require().Equalf(string(testCase.expectedCachingStatus), actualStatus, "case %s: unexpected status", testCase.name)
 
 		resp.Body.Close()
 	}
@@ -396,9 +395,9 @@ caching {
 		actualStatus := resp.Header.Get("x-cache")
 		actualHitTimes := resp.Header.Get("x-cache-hits")
 
-		require.Equalf(s.T(), testCase.expectedBody, string(respBody), "case %s: unexpected payload", testCase.name)
-		require.Equalf(s.T(), string(testCase.expectedCachingStatus), actualStatus, "case %s: unexpected status", testCase.name)
-		require.Equalf(s.T(), testCase.expectedHitTimes, actualHitTimes, "case %s: unexpected hit times", testCase.name)
+		s.Require().Equalf(testCase.expectedBody, string(respBody), "case %s: unexpected payload", testCase.name)
+		s.Require().Equalf(string(testCase.expectedCachingStatus), actualStatus, "case %s: unexpected status", testCase.name)
+		s.Require().Equalf(testCase.expectedHitTimes, actualHitTimes, "case %s: unexpected hit times", testCase.name)
 
 		resp.Body.Close()
 	}
@@ -497,11 +496,11 @@ caching {
 		actualCachingTags := resp.Header.Get("x-debug-result-tags")
 		actualPurgingTags := resp.Header.Get("x-debug-purging-tags")
 
-		require.Equalf(s.T(), testCase.expectedBody, string(respBody), "case %s: unexpected payload", testCase.name)
-		require.Equalf(s.T(), string(testCase.expectedCachingStatus), actualStatus, "case %s: unexpected status", testCase.name)
-		require.Equalf(s.T(), testCase.expectedCachingTags, actualCachingTags, "case %s: unexpected caching tags", testCase.name)
-		require.Equalf(s.T(), testCase.expectedPurgingTags, actualPurgingTags, "case %s: unexpected purging tags", testCase.name)
-		require.Equalf(s.T(), testCase.expectedHitTimes, actualHitTimes, "case %s: unexpected hit times", testCase.name)
+		s.Require().Equalf(testCase.expectedBody, string(respBody), "case %s: unexpected payload", testCase.name)
+		s.Require().Equalf(string(testCase.expectedCachingStatus), actualStatus, "case %s: unexpected status", testCase.name)
+		s.Require().Equalf(testCase.expectedCachingTags, actualCachingTags, "case %s: unexpected caching tags", testCase.name)
+		s.Require().Equalf(testCase.expectedPurgingTags, actualPurgingTags, "case %s: unexpected purging tags", testCase.name)
+		s.Require().Equalf(testCase.expectedHitTimes, actualHitTimes, "case %s: unexpected hit times", testCase.name)
 
 		resp.Body.Close()
 	}
@@ -575,10 +574,10 @@ caching {
 		actualStatus := resp.Header.Get("x-cache")
 		actualPurgingTags := resp.Header.Get("x-debug-purging-tags")
 
-		require.Equalf(s.T(), testCase.expectedBody, string(respBody), "case %s: unexpected payload", testCase.name)
-		require.Equalf(s.T(), string(testCase.expectedCachingStatus), actualStatus, "case %s: unexpected status", testCase.name)
-		require.Equalf(s.T(), testCase.expectedPurgingTags, actualPurgingTags, "case %s: unexpected purging tags", testCase.name)
-		require.Equalf(s.T(), testCase.expectedHitTimes, actualHitTimes, "case %s: unexpected hit times", testCase.name)
+		s.Require().Equalf(testCase.expectedBody, string(respBody), "case %s: unexpected payload", testCase.name)
+		s.Require().Equalf(string(testCase.expectedCachingStatus), actualStatus, "case %s: unexpected status", testCase.name)
+		s.Require().Equalf(testCase.expectedPurgingTags, actualPurgingTags, "case %s: unexpected purging tags", testCase.name)
+		s.Require().Equalf(testCase.expectedHitTimes, actualHitTimes, "case %s: unexpected hit times", testCase.name)
 
 		resp.Body.Close()
 	}
@@ -740,9 +739,9 @@ caching {
 		actualStatus := resp.Header.Get("x-cache")
 		actualHitTimes := resp.Header.Get("x-cache-hits")
 
-		require.Equalf(s.T(), testCase.expectedBody, string(respBody), "case %s: unexpected payload", testCase.name)
-		require.Equalf(s.T(), string(testCase.expectedCachingStatus), actualStatus, "case %s: unexpected status", testCase.name)
-		require.Equalf(s.T(), testCase.expectedHitTimes, actualHitTimes, "case %s: unexpected hit times", testCase.name)
+		s.Require().Equalf(testCase.expectedBody, string(respBody), "case %s: unexpected payload", testCase.name)
+		s.Require().Equalf(string(testCase.expectedCachingStatus), actualStatus, "case %s: unexpected status", testCase.name)
+		s.Require().Equalf(testCase.expectedHitTimes, actualHitTimes, "case %s: unexpected hit times", testCase.name)
 
 		resp.Body.Close()
 	}
