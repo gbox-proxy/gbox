@@ -203,7 +203,7 @@ func (t cachingTags) TypeFields() cachingTags {
 }
 
 func (t cachingTags) SchemaHash() cachingTags {
-	return t.filterWithPrefix(cachingTagSchemaHashPattern)
+	return t.filterWithPrefix(cachingTagSchemaHashPrefix)
 }
 
 func (t cachingTags) Operation() cachingTags {
