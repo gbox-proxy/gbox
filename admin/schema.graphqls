@@ -3,6 +3,7 @@ type Query {
 }
 
 type Mutation {
+    purgeAll: Boolean!
     purgeOperation(name: String!): Boolean!
     purgeTypeKey(type: String!, field: String!, key: ID!): Boolean!
     purgeQueryRootField(field: String!): Boolean!

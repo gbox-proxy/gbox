@@ -10,7 +10,7 @@ import (
 	"strconv"
 )
 
-func (c *Caching) purgeQueryResultBySchema(ctx context.Context, schema *graphql.Schema) error {
+func (c *Caching) PurgeQueryResultBySchema(ctx context.Context, schema *graphql.Schema) error {
 	hash, _ := schema.Hash()
 	tag := fmt.Sprintf(cachingTagSchemaHashPattern, hash)
 

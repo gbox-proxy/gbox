@@ -10,6 +10,7 @@ import (
 )
 
 type QueryResultCachePurger interface {
+	PurgeQueryResultBySchema(context.Context, *graphql.Schema) error
 	PurgeQueryResultByOperationName(context.Context, string) error
 	PurgeQueryResultByTypeName(context.Context, string) error
 	PurgeQueryResultByTypeField(ctx context.Context, typeName, fieldName string) error
