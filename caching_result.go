@@ -112,7 +112,7 @@ func (r *cachingQueryResult) ValidFor(cc *cacheobject.RequestCacheDirectives) bo
 		}
 
 		// max-age with max-stale
-		if cc.MaxStaleSet && status == CachingQueryResultStale {
+		if (cc.MaxStaleSet || cc.MaxStale != -1) && status == CachingQueryResultStale {
 			// client is willing to accept a stale response of any age.
 			if cc.MaxStale == -1 {
 				return true
@@ -127,7 +127,7 @@ func (r *cachingQueryResult) ValidFor(cc *cacheobject.RequestCacheDirectives) bo
 	}
 
 	// max-stale only
-	if cc.MaxStaleSet {
+	if cc.MaxStaleSet || cc.MaxStale != -1 {
 		if cc.MaxStale == -1 || status == CachingQueryResultValid {
 			return true
 		}

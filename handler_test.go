@@ -968,6 +968,109 @@ caching {
 	}
 }
 
+func (s *HandlerIntegrationTestSuite) TestCachingControlRequestHeader() {
+	testCases := []struct {
+		name                  string
+		cc                    string
+		expectedCachingStatus CachingStatus
+		waitTime              time.Duration
+	}{
+		{
+			name:                  "first_time_cc_no_store",
+			cc:                    "no-store",
+			expectedCachingStatus: CachingStatusMiss,
+		},
+		{
+			name:                  "next_time_cc_no_store",
+			cc:                    "no-store",
+			expectedCachingStatus: CachingStatusMiss,
+		},
+		{
+			name:                  "invalid_cc_first_time_cache_will_miss",
+			cc:                    "",
+			expectedCachingStatus: CachingStatusMiss,
+		},
+		{
+			name:                  "invalid_cc_next_time_cache_will_hit",
+			cc:                    "",
+			expectedCachingStatus: CachingStatusHit,
+		},
+		{
+			name:                  "max_age_with_valid_max_stale_cc_result_stale_still_hit",
+			waitTime:              time.Millisecond * 50,
+			cc:                    "max-age=1, max-stale=2",
+			expectedCachingStatus: CachingStatusHit,
+		},
+		{
+			name:                  "max_age_with_empty_max_stale_cc_result_stale_still_hit",
+			waitTime:              time.Millisecond * 50,
+			cc:                    "max-age=1, max-stale",
+			expectedCachingStatus: CachingStatusHit,
+		},
+		{
+			name:                  "max_age_with_invalid_max_stale_cc_result_stale_will_miss",
+			waitTime:              time.Second * 2,
+			cc:                    "max-age=1, max-stale=1",
+			expectedCachingStatus: CachingStatusMiss,
+		},
+		{
+			name:                  "max_age_without_max_stale_cc_result_stale_will_miss",
+			waitTime:              time.Millisecond * 50,
+			cc:                    "max-age=1",
+			expectedCachingStatus: CachingStatusMiss,
+		},
+		{
+			name:                  "invalid_min_fresh_cc_will_miss",
+			waitTime:              time.Second,
+			cc:                    "min-fresh=1",
+			expectedCachingStatus: CachingStatusMiss,
+		},
+		{
+			name:                  "invalid_max_stale_cc_will_miss",
+			waitTime:              time.Millisecond * 1050,
+			cc:                    "max-stale=1",
+			expectedCachingStatus: CachingStatusMiss,
+		},
+		{
+			name:                  "valid_max_stale_cc_will_hit",
+			waitTime:              time.Millisecond * 55,
+			cc:                    "max-stale=1",
+			expectedCachingStatus: CachingStatusHit,
+		},
+	}
+	tester := caddytest.NewTester(s.T())
+	tester.InitServer(pureCaddyfile, "caddyfile")
+	tester.InitServer(fmt.Sprintf(caddyfilePattern, `
+caching {
+	rules {
+		default {
+			max_age 50ms
+			swr 5s
+		}
+	}
+}
+`), "caddyfile")
+
+	for _, testCase := range testCases {
+		<-time.After(testCase.waitTime)
+
+		r, _ := http.NewRequest(
+			"POST",
+			"http://localhost:9090/graphql",
+			strings.NewReader(`{"query":"query GetUsers { users { name } }"}`),
+		)
+		r.Header.Set("content-type", "application/json")
+		r.Header.Set("cache-control", testCase.cc)
+		resp := tester.AssertResponseCode(r, http.StatusOK)
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		actualCachingStatus := resp.Header.Get("x-cache")
+
+		s.Require().Equalf(string(body), `{"data":{"users":[{"name":"A"},{"name":"B"},{"name":"C"}]}}`, "case %s: unexpected response body", testCase.name)
+		s.Require().Equalf(string(testCase.expectedCachingStatus), actualCachingStatus, "case %s: unexpected caching status", testCase.name)
+	}
+}
+
 func TestHandlerIntegration(t *testing.T) {
 	h := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &testserver.Resolver{}}))
 	s := &http.Server{
