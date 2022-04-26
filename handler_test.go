@@ -831,24 +831,27 @@ caching {
 		s.Require().NoError(c.Write(&metricOut))
 		s.Require().Equal(float64(i), *metricOut.Counter.Value, "unexpected operation count metrics")
 
-		cm, cme := metrics.cacheMisses.GetMetricWith(prometheus.Labels{
+		cm, cme := metrics.cachingCount.GetMetricWith(prometheus.Labels{
 			"operation_name": "GetUsersMetric",
+			"status":         string(CachingStatusMiss),
 		})
 
 		s.Require().NoError(cme)
 		s.Require().NoError(cm.Write(&metricOut))
 		s.Require().Equal(float64(1), *metricOut.Counter.Value, "unexpected cache miss metrics")
 
-		ch, che := metrics.cacheHits.GetMetricWith(prometheus.Labels{
+		ch, che := metrics.cachingCount.GetMetricWith(prometheus.Labels{
 			"operation_name": "GetUsersMetric",
+			"status":         string(CachingStatusHit),
 		})
 
 		s.Require().NoError(che)
 		s.Require().NoError(ch.Write(&metricOut))
 		s.Require().Equal(float64(i-1), *metricOut.Counter.Value, "unexpected cache hits metrics")
 
-		cp, cpe := metrics.cachePasses.GetMetricWith(prometheus.Labels{
+		cp, cpe := metrics.cachingCount.GetMetricWith(prometheus.Labels{
 			"operation_name": "GetBooksMetric",
+			"status":         string(CachingStatusPass),
 		})
 
 		s.Require().NoError(cpe)

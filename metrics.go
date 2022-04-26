@@ -37,27 +37,13 @@ func init() {
 			Buckets:   prometheus.DefBuckets,
 		}, operationLabels)
 
-		cacheLabels := []string{"operation_name"}
-		metrics.cacheHits = promauto.NewCounterVec(prometheus.CounterOpts{
+		cachingLabels := []string{"operation_name", "status"}
+		metrics.cachingCount = promauto.NewCounterVec(prometheus.CounterOpts{
 			Namespace: ns,
 			Subsystem: sub,
-			Name:      "cache_hits_total",
-			Help:      "Counter of graphql query operations have cache status's hit.",
-		}, cacheLabels)
-
-		metrics.cacheMisses = promauto.NewCounterVec(prometheus.CounterOpts{
-			Namespace: ns,
-			Subsystem: sub,
-			Name:      "cache_misses_total",
-			Help:      "Counter of graphql query operations have cache status's miss.",
-		}, cacheLabels)
-
-		metrics.cachePasses = promauto.NewCounterVec(prometheus.CounterOpts{
-			Namespace: ns,
-			Subsystem: sub,
-			Name:      "cache_passes_total",
-			Help:      "Counter of graphql query operations have cache status's pass.",
-		}, cacheLabels)
+			Name:      "caching_total",
+			Help:      "Counter of graphql query operations caching statues.",
+		}, cachingLabels)
 	})
 }
 
@@ -66,9 +52,7 @@ type Metrics struct {
 	operationInFlight *prometheus.GaugeVec
 	operationCount    *prometheus.CounterVec
 	operationDuration *prometheus.HistogramVec
-	cacheHits         *prometheus.CounterVec
-	cacheMisses       *prometheus.CounterVec
-	cachePasses       *prometheus.CounterVec
+	cachingCount      *prometheus.CounterVec
 }
 
 type requestMetrics interface {
@@ -76,10 +60,8 @@ type requestMetrics interface {
 	addMetricsEndRequest(*graphql.Request, time.Duration)
 }
 
-type cacheMetrics interface {
-	addMetricsCacheHit(*graphql.Request)
-	addMetricsCacheMiss(*graphql.Request)
-	addMetricsCachePass(*graphql.Request)
+type cachingMetrics interface {
+	addMetricsCaching(*graphql.Request, CachingStatus)
 }
 
 func (h *Handler) addMetricsBeginRequest(request *graphql.Request) {
@@ -108,43 +90,19 @@ func (h *Handler) addMetricsEndRequest(request *graphql.Request, d time.Duration
 	h.metrics.operationDuration.With(labels).Observe(d.Seconds())
 }
 
-func (h *Handler) addMetricsCacheHit(request *graphql.Request) {
-	labels, err := h.metricsCacheLabels(request)
+func (h *Handler) addMetricsCaching(request *graphql.Request, status CachingStatus) {
+	labels, err := h.metricsCachingLabels(request, status)
 
 	if err != nil {
-		h.logger.Warn("fail to get metrics cache labels", zap.Error(err))
+		h.logger.Warn("fail to get metrics caching labels", zap.Error(err))
 
 		return
 	}
 
-	h.metrics.cacheHits.With(labels).Inc()
+	h.metrics.cachingCount.With(labels).Inc()
 }
 
-func (h *Handler) addMetricsCacheMiss(request *graphql.Request) {
-	labels, err := h.metricsCacheLabels(request)
-
-	if err != nil {
-		h.logger.Warn("fail to get metrics cache labels", zap.Error(err))
-
-		return
-	}
-
-	h.metrics.cacheMisses.With(labels).Inc()
-}
-
-func (h *Handler) addMetricsCachePass(request *graphql.Request) {
-	labels, err := h.metricsCacheLabels(request)
-
-	if err != nil {
-		h.logger.Warn("fail to get metrics cache labels", zap.Error(err))
-
-		return
-	}
-
-	h.metrics.cachePasses.With(labels).Inc()
-}
-
-func (h *Handler) metricsCacheLabels(request *graphql.Request) (map[string]string, error) {
+func (h *Handler) metricsCachingLabels(request *graphql.Request, status CachingStatus) (map[string]string, error) {
 	if !request.IsNormalized() {
 		if result, _ := request.Normalize(h.schema); !result.Successful {
 			return nil, result.Errors
@@ -153,6 +111,7 @@ func (h *Handler) metricsCacheLabels(request *graphql.Request) (map[string]strin
 
 	labels := map[string]string{
 		"operation_name": request.OperationName,
+		"status":         string(status),
 	}
 
 	return labels, nil

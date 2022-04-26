@@ -59,7 +59,7 @@ type Caching struct {
 	store               *CachingStore
 	ctxBackground       context.Context
 	ctxBackgroundCancel func()
-	cacheMetrics
+	cachingMetrics
 }
 
 type cachingStoreDestructor struct {
@@ -70,12 +70,12 @@ func (c *cachingStoreDestructor) Destruct() error {
 	return c.store.close()
 }
 
-func (c *Caching) WithLogger(l *zap.Logger) {
+func (c *Caching) withLogger(l *zap.Logger) {
 	c.logger = l
 }
 
-func (c *Caching) WithMetrics(m cacheMetrics) {
-	c.cacheMetrics = m
+func (c *Caching) withMetrics(m cachingMetrics) {
+	c.cachingMetrics = m
 }
 
 func (c *Caching) Provision(ctx caddy.Context) error {

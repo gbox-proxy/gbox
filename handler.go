@@ -113,8 +113,8 @@ func (h *Handler) Provision(ctx caddy.Context) (err error) {
 			return err
 		}
 
-		h.Caching.WithLogger(h.logger)
-		h.Caching.WithMetrics(h)
+		h.Caching.withLogger(h.logger)
+		h.Caching.withMetrics(h)
 	}
 
 	if h.FetchSchemaTimeout == nil {

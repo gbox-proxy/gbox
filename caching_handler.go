@@ -44,11 +44,10 @@ func (c *Caching) handleQueryRequest(w http.ResponseWriter, r *cachingRequest, h
 	}
 
 	status, result := c.resolvePlan(r, plan)
+	defer c.addMetricsCaching(r.gqlRequest, status)
 
 	switch status {
 	case CachingStatusMiss:
-		defer c.addMetricsCacheMiss(r.gqlRequest)
-
 		bodyBuff := bufferPool.Get().(*bytes.Buffer)
 		defer bufferPool.Put(bodyBuff)
 		bodyBuff.Reset()
@@ -92,8 +91,6 @@ func (c *Caching) handleQueryRequest(w http.ResponseWriter, r *cachingRequest, h
 			}
 		}(crw.Header().Clone())
 	case CachingStatusHit:
-		defer c.addMetricsCacheHit(r.gqlRequest)
-
 		for header, values := range result.Header {
 			w.Header()[header] = values
 		}
@@ -116,7 +113,6 @@ func (c *Caching) handleQueryRequest(w http.ResponseWriter, r *cachingRequest, h
 			}
 		}()
 	case CachingStatusPass:
-		defer c.addMetricsCachePass(r.gqlRequest)
 		c.addCachingResponseHeaders(status, result, plan, w.Header())
 		err = h(w, r.httpRequest)
 	}
