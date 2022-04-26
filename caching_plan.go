@@ -187,7 +187,7 @@ func (p *cachingPlanner) computePlan() (*cachingPlan, error) {
 			plan.MaxAge = rule.MaxAge
 		}
 
-		if plan.Swr == 0 || plan.Swr > rule.Swr {
+		if plan.Swr == 0 || (plan.Swr > rule.Swr && rule.Swr > 0) {
 			plan.Swr = rule.Swr
 		}
 

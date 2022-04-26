@@ -32,9 +32,9 @@ func (h *Handler) initRouter() {
 	router.Path(graphQLPath).HeadersRegexp(
 		"content-type", "application/json*",
 	).Methods("POST").HandlerFunc(h.GraphQLHandle)
-	router.Path(graphQLPath).Headers(
-		"upgrade", "websocket",
-		"sec-websocket-protocol", "graphql-transport-ws",
+	router.Path(graphQLPath).HeadersRegexp(
+		"upgrade", "^websocket$",
+		"sec-websocket-protocol", "^graphql-(transport-)?ws$",
 	).Methods("GET").HandlerFunc(h.GraphQLOverWebsocketHandle)
 
 	if h.Caching != nil {

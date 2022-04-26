@@ -84,7 +84,7 @@ func (c *wsMetricsConn) Read(b []byte) (n int, err error) {
 		return
 	}
 
-	if msg.Type == "subscribe" {
+	if msg.Type == "subscribe" || msg.Type == "start" {
 		request := new(graphql.Request)
 
 		if e = json.Unmarshal(msg.Payload, request); e != nil {
