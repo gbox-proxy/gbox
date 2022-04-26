@@ -7,11 +7,14 @@ import (
 	"github.com/caddyserver/caddy/v2/caddytest"
 	"github.com/gbox-proxy/gbox/internal/testserver"
 	"github.com/gbox-proxy/gbox/internal/testserver/generated"
+	"github.com/prometheus/client_golang/prometheus"
+	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"io"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -42,11 +45,11 @@ const (
 `
 )
 
-type IntegrationTestSuite struct {
+type HandlerIntegrationTestSuite struct {
 	suite.Suite
 }
 
-func (s *IntegrationTestSuite) TestComplexity() {
+func (s *HandlerIntegrationTestSuite) TestComplexity() {
 	testCases := map[string]struct {
 		extraConfig  string
 		payload      string
@@ -95,7 +98,7 @@ complexity {
 	}
 }
 
-func (s *IntegrationTestSuite) TestIntrospection() {
+func (s *HandlerIntegrationTestSuite) TestIntrospection() {
 	testCases := map[string]struct {
 		extraConfig  string
 		payload      string
@@ -133,7 +136,63 @@ func (s *IntegrationTestSuite) TestIntrospection() {
 	}
 }
 
-func (s *IntegrationTestSuite) TestCachingStatues() {
+func (s *HandlerIntegrationTestSuite) TestDisabledCaching() {
+	tester := caddytest.NewTester(s.T())
+	tester.InitServer(pureCaddyfile, "caddyfile")
+	tester.InitServer(fmt.Sprintf(caddyfilePattern, `
+caching {
+	enabled false
+	rules {
+		default {
+			max_age 1h
+		}
+	}
+}
+`), "caddyfile")
+	r, _ := http.NewRequest(
+		"POST",
+		"http://localhost:9090/graphql",
+		strings.NewReader(`{"query": "query UsersNameOnly { users { name } }"}`),
+	)
+	r.Header.Add("content-type", "application/json")
+	resp := tester.AssertResponseCode(r, http.StatusOK)
+	body, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+
+	s.Emptyf(resp.Header.Get("x-cache"), "x-cache header should not be set")
+	s.Equalf(`{"data":{"users":[{"name":"A"},{"name":"B"},{"name":"C"}]}}`, string(body), "unexpected response")
+}
+
+func (s *HandlerIntegrationTestSuite) TestNotCachingInvalidResponse() {
+	tester := caddytest.NewTester(s.T())
+	tester.InitServer(pureCaddyfile, "caddyfile")
+	tester.InitServer(fmt.Sprintf(caddyfilePattern, `
+caching {
+	rules {
+		default {
+			max_age 1h
+		}
+	}
+}
+`), "caddyfile")
+
+	for i := 0; i < 3; i++ {
+		r, _ := http.NewRequest(
+			"POST",
+			"http://localhost:9090/graphql",
+			strings.NewReader(`{"query": "query UsersNameOnly { users(invalid_filter: 123) { name } }"}`),
+		)
+		r.Header.Add("content-type", "application/json")
+		resp := tester.AssertResponseCode(r, http.StatusUnprocessableEntity)
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+
+		s.Equalf(string(CachingStatusMiss), resp.Header.Get("x-cache"), "cache status should be MISS at all")
+		s.Equalf(`{"errors":[{"message":"Unknown argument \"invalid_filter\" on field \"QueryTest.users\".","locations":[{"line":1,"column":23}],"extensions":{"code":"GRAPHQL_VALIDATION_FAILED"}}],"data":null}`, string(body), "unexpected response")
+	}
+}
+
+func (s *HandlerIntegrationTestSuite) TestCachingStatues() {
 	const payload = `{"query": "query { users { name } }"}`
 
 	testCases := []struct {
@@ -271,7 +330,7 @@ caching {
 	}
 }
 
-func (s *IntegrationTestSuite) TestCachingSwr() {
+func (s *HandlerIntegrationTestSuite) TestCachingSwr() {
 	testCases := []struct {
 		name                  string
 		expectedHitTimes      string
@@ -345,7 +404,7 @@ caching {
 	}
 }
 
-func (s *IntegrationTestSuite) TestCachingEnabledAutoInvalidate() {
+func (s *HandlerIntegrationTestSuite) TestCachingEnabledAutoInvalidate() {
 	const payloadNameOnly = `{"query": "query UsersNameOnly { users { name } }"}`
 	const payload = `{"query": "query Users { users { id name } }"}`
 	const mutationPayload = `{"query": "mutation InvalidateUsers { updateUsers { id } }"}`
@@ -448,7 +507,7 @@ caching {
 	}
 }
 
-func (s *IntegrationTestSuite) TestCachingDisabledAutoInvalidate() {
+func (s *HandlerIntegrationTestSuite) TestCachingDisabledAutoInvalidate() {
 	const payload = `{"query": "query Users { users { id name } }"}`
 	const mutationPayload = `{"query": "mutation InvalidateUsers { updateUsers { id } }"}`
 	testCases := []struct {
@@ -525,7 +584,7 @@ caching {
 	}
 }
 
-func (s *IntegrationTestSuite) TestCachingVaries() {
+func (s *HandlerIntegrationTestSuite) TestCachingVaries() {
 	testCases := []struct {
 		name                  string
 		expectedHitTimes      string
@@ -689,7 +748,225 @@ caching {
 	}
 }
 
-func TestIntegration(t *testing.T) {
+func (s *HandlerIntegrationTestSuite) TestEnabledPlaygrounds() {
+	tester := caddytest.NewTester(s.T())
+	tester.InitServer(pureCaddyfile, "caddyfile")
+	tester.InitServer(fmt.Sprintf(caddyfilePattern, `
+disabled_playgrounds false
+`), "caddyfile")
+	r, _ := http.NewRequest("GET", "http://localhost:9090/", nil)
+	tester.AssertResponseCode(r, http.StatusOK)
+
+	r, _ = http.NewRequest("GET", "http://localhost:9090/admin", nil)
+	tester.AssertResponseCode(r, http.StatusNotFound) // when not enable caching, admin play ground should not affect.
+
+	tester.InitServer(fmt.Sprintf(caddyfilePattern, `
+disabled_playgrounds false
+caching {
+}
+`), "caddyfile")
+
+	r, _ = http.NewRequest("GET", "http://localhost:9090/admin", nil)
+	tester.AssertResponseCode(r, http.StatusOK) // now it should be enabled.
+
+	r, _ = http.NewRequest("GET", "http://localhost:9090", nil)
+	tester.AssertResponseCode(r, http.StatusOK)
+}
+
+func (s *HandlerIntegrationTestSuite) TestDisabledPlaygrounds() {
+	tester := caddytest.NewTester(s.T())
+	tester.InitServer(pureCaddyfile, "caddyfile")
+	tester.InitServer(fmt.Sprintf(caddyfilePattern, `
+disabled_playgrounds true
+`), "caddyfile")
+	r, _ := http.NewRequest("GET", "http://localhost:9090", nil)
+	tester.AssertResponseCode(r, http.StatusNotFound)
+
+	r, _ = http.NewRequest("GET", "http://localhost:9090/admin", nil)
+	tester.AssertResponseCode(r, http.StatusNotFound)
+}
+
+func (s *HandlerIntegrationTestSuite) TestMetrics() {
+	tester := caddytest.NewTester(s.T())
+	tester.InitServer(pureCaddyfile, "caddyfile")
+	tester.InitServer(fmt.Sprintf(caddyfilePattern, `
+caching {
+	rules {
+		default {
+			types {
+				UserTest
+			}
+			max_age 30m
+		}
+	}
+}
+`), "caddyfile")
+
+	for i := 1; i <= 3; i++ {
+		br, _ := http.NewRequest(
+			"POST",
+			"http://localhost:9090/graphql",
+			strings.NewReader(`{"query":"query GetBooksMetric { books { title } }"}`),
+		)
+		br.Header.Add("content-type", "application/json")
+		resp := tester.AssertResponseCode(br, http.StatusOK)
+		resp.Body.Close()
+
+		ur, _ := http.NewRequest(
+			"POST",
+			"http://localhost:9090/graphql",
+			strings.NewReader(`{"query":"query GetUsersMetric { users { name } }"}`),
+		)
+		ur.Header.Add("content-type", "application/json")
+		resp = tester.AssertResponseCode(ur, http.StatusOK)
+		resp.Body.Close()
+
+		var metricOut dto.Metric
+
+		c, ce := metrics.operationCount.GetMetricWith(prometheus.Labels{
+			"operation_name": "GetUsersMetric",
+			"operation_type": "query",
+		})
+
+		s.Require().NoError(ce)
+		s.Require().NoError(c.Write(&metricOut))
+		s.Require().Equal(float64(i), *metricOut.Counter.Value, "unexpected operation count metrics")
+
+		cm, cme := metrics.cacheMisses.GetMetricWith(prometheus.Labels{
+			"operation_name": "GetUsersMetric",
+		})
+
+		s.Require().NoError(cme)
+		s.Require().NoError(cm.Write(&metricOut))
+		s.Require().Equal(float64(1), *metricOut.Counter.Value, "unexpected cache miss metrics")
+
+		ch, che := metrics.cacheHits.GetMetricWith(prometheus.Labels{
+			"operation_name": "GetUsersMetric",
+		})
+
+		s.Require().NoError(che)
+		s.Require().NoError(ch.Write(&metricOut))
+		s.Require().Equal(float64(i-1), *metricOut.Counter.Value, "unexpected cache hits metrics")
+
+		cp, cpe := metrics.cachePasses.GetMetricWith(prometheus.Labels{
+			"operation_name": "GetBooksMetric",
+		})
+
+		s.Require().NoError(cpe)
+		s.Require().NoError(cp.Write(&metricOut), "can not write metric out")
+		s.Require().Equal(float64(i), *metricOut.Counter.Value, "unexpected cache passes metrics")
+
+		oi, oie := metrics.operationInFlight.GetMetricWith(prometheus.Labels{
+			"operation_name": "GetUsersMetric",
+			"operation_type": "query",
+		})
+
+		s.Require().NoError(oie)
+		s.Require().NoError(oi.Write(&metricOut), "can not write metric out")
+		s.Require().Equal(float64(0), *metricOut.Gauge.Value, "unexpected operation in flight metrics")
+	}
+}
+
+func (s *HandlerIntegrationTestSuite) TestAdminPurgeQueryResult() {
+	testCases := []struct {
+		name       string
+		mutationOp string
+	}{
+		{
+			name:       "purge_all",
+			mutationOp: `{"query": "mutation { result: purgeAll }"}`,
+		},
+		{
+			name:       "purge_by_type",
+			mutationOp: `{"query": "mutation { result: purgeType(type: \"UserTest\") }"}`,
+		},
+		{
+			name:       "purge_by_type_key",
+			mutationOp: `{"query": "mutation { result: purgeTypeKey(type: \"UserTest\", field: \"id\", key: 1) }"}`,
+		},
+		{
+			name:       "purge_by_operation_name",
+			mutationOp: `{"query": "mutation { result: purgeOperation(name: \"GetUsers\") }"}`,
+		},
+		{
+			name:       "purge_by_query_root_field",
+			mutationOp: `{"query": "mutation { result: purgeQueryRootField(field: \"users\") }"}`,
+		},
+	}
+	tester := caddytest.NewTester(s.T())
+	tester.InitServer(pureCaddyfile, "caddyfile")
+	tester.InitServer(fmt.Sprintf(caddyfilePattern, `
+caching {
+	rules {
+		default {
+			max_age 1h
+		}
+	}
+}
+`), "caddyfile")
+
+	booksQueryFunc := func(expectedStatus CachingStatus) {
+		r, _ := http.NewRequest(
+			"POST",
+			"http://localhost:9090/graphql",
+			strings.NewReader(`{"query":"query GetBooks { books { title id } }"}`),
+		)
+		r.Header.Add("content-type", "application/json")
+		resp := tester.AssertResponseCode(r, http.StatusOK)
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+
+		expectedStatusString := string(expectedStatus)
+		s.Require().Equal(string(body), `{"data":{"books":[{"title":"A - Book 1","id":1},{"title":"A - Book 2","id":2},{"title":"B - Book 1","id":3},{"title":"C - Book 1","id":4}]}}`, "unexpected books response")
+		s.Require().Equalf(expectedStatusString, resp.Header.Get("x-cache"), "expected books query should be %s", expectedStatusString)
+	}
+
+	booksQueryFunc(CachingStatusMiss)
+
+	for _, testCase := range testCases {
+		for i := 0; i <= 3; i++ {
+			r, _ := http.NewRequest(
+				"POST",
+				"http://localhost:9090/graphql",
+				strings.NewReader(`{"query":"query GetUsers { users { id name } }"}`),
+			)
+			r.Header.Add("content-type", "application/json")
+			resp := tester.AssertResponseCode(r, http.StatusOK)
+			body, _ := io.ReadAll(resp.Body)
+			resp.Body.Close()
+
+			s.Require().Equal(string(body), `{"data":{"users":[{"id":1,"name":"A"},{"id":2,"name":"B"},{"id":3,"name":"C"}]}}`, "unexpected response")
+
+			if i == 0 {
+				// always miss on first time.
+				s.Require().Equal(string(CachingStatusMiss), resp.Header.Get("x-cache"), "cache status must MISS on first time")
+			} else {
+				s.Require().Equal(string(CachingStatusHit), resp.Header.Get("x-cache"), "cache status must HIT on next time")
+				s.Require().Equal(strconv.Itoa(i), resp.Header.Get("x-cache-hits"), "hit times not equal")
+			}
+		}
+
+		r, _ := http.NewRequest(
+			"POST",
+			"http://localhost:9090/admin/graphql",
+			strings.NewReader(testCase.mutationOp),
+		)
+		r.Header.Add("content-type", "application/json")
+		resp := tester.AssertResponseCode(r, http.StatusOK)
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+
+		s.Require().Equal(string(body), `{"data":{"result":true}}`, "case %s: unexpected purge result", testCase.name)
+
+		if testCase.name != "purge_all" {
+			booksQueryFunc(CachingStatusHit) // purge users result should not affect books result.
+		} else {
+			booksQueryFunc(CachingStatusMiss) // purge all should affect books result too.
+		}
+	}
+}
+
+func TestHandlerIntegration(t *testing.T) {
 	h := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &testserver.Resolver{}}))
 	s := &http.Server{
 		Addr:    "localhost:9091",
@@ -703,5 +980,5 @@ func TestIntegration(t *testing.T) {
 
 	<-time.After(time.Millisecond * 10)
 
-	suite.Run(t, new(IntegrationTestSuite))
+	suite.Run(t, new(HandlerIntegrationTestSuite))
 }
