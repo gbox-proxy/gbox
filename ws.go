@@ -4,12 +4,13 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
-	"github.com/gobwas/ws/wsutil"
-	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
+	"github.com/gobwas/ws/wsutil"
+	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
 )
 
 type wsMetricsResponseWriter struct {
@@ -56,7 +57,7 @@ func (c *wsMetricsConn) Read(b []byte) (n int, err error) {
 			c.request = nil
 		}
 
-		return
+		return n, err
 	}
 
 	buff := bufferPool.Get().(*bytes.Buffer)
@@ -67,7 +68,7 @@ func (c *wsMetricsConn) Read(b []byte) (n int, err error) {
 	r := wsutil.NewServerSideReader(buff)
 
 	if _, e := r.NextFrame(); e != nil {
-		return
+		return n, err
 	}
 
 	decoder := json.NewDecoder(r)
@@ -77,14 +78,14 @@ func (c *wsMetricsConn) Read(b []byte) (n int, err error) {
 	}{}
 
 	if e := decoder.Decode(msg); e != nil {
-		return
+		return n, err
 	}
 
 	if msg.Type == "subscribe" || msg.Type == "start" {
 		request := new(graphql.Request)
 
 		if e := json.Unmarshal(msg.Payload, request); e != nil {
-			return
+			return n, err
 		}
 
 		c.request = request
@@ -92,5 +93,5 @@ func (c *wsMetricsConn) Read(b []byte) (n int, err error) {
 		c.addMetricsBeginRequest(request)
 	}
 
-	return
+	return n, err
 }

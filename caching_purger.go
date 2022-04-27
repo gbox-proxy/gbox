@@ -3,11 +3,12 @@ package gbox
 import (
 	"context"
 	"fmt"
+	"strconv"
+
 	"github.com/eko/gocache/v2/store"
 	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
-	"strconv"
 )
 
 func (c *Caching) PurgeQueryResultBySchema(ctx context.Context, schema *graphql.Schema) error {

@@ -2,11 +2,12 @@ package gbox
 
 import (
 	"fmt"
+	"net/url"
+	"strconv"
+
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
-	"net/url"
-	"strconv"
 )
 
 func (h *Handler) unmarshalCaddyfileCaching(d *caddyfile.Dispenser) error {
@@ -100,7 +101,7 @@ func (c *Caching) unmarshalCaddyfileRules(d *caddyfile.Dispenser) error {
 			for subNesting := d.Nesting(); d.NextBlock(subNesting); {
 				switch d.Val() {
 				case "types":
-					if err := rule.unmarshalCaddyfileTypes(d.NewFromNextSegment(), desc); err != nil {
+					if err := rule.unmarshalCaddyfileTypes(d.NewFromNextSegment()); err != nil {
 						return err
 					}
 				case "max_age":
@@ -159,7 +160,7 @@ func (c *Caching) unmarshalCaddyfileRules(d *caddyfile.Dispenser) error {
 	return nil
 }
 
-func (r *CachingRule) unmarshalCaddyfileTypes(d *caddyfile.Dispenser, desc string) error {
+func (r *CachingRule) unmarshalCaddyfileTypes(d *caddyfile.Dispenser) error {
 	types := make(graphql.RequestTypes)
 
 	for d.Next() {

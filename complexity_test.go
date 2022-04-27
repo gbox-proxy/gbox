@@ -1,9 +1,10 @@
 package gbox
 
 import (
+	"testing"
+
 	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestComplexity(t *testing.T) {

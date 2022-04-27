@@ -5,6 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"time"
+
 	"github.com/caddyserver/caddy/v2"
 	"github.com/jensneuse/graphql-go-tools/pkg/ast"
 	"github.com/jensneuse/graphql-go-tools/pkg/astparser"
@@ -12,9 +16,6 @@ import (
 	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
 	"github.com/jensneuse/graphql-go-tools/pkg/introspection"
 	"go.uber.org/zap"
-	"io/ioutil"
-	"net/http"
-	"time"
 )
 
 const (
@@ -93,7 +94,7 @@ func (s *schemaFetcher) fetch() error {
 func (s *schemaFetcher) fetchByIntrospectionData(data *introspection.Data) (err error) {
 	var newSchema *graphql.Schema
 	var document *ast.Document
-	dataJSON, _ := json.Marshal(data)
+	dataJSON, _ := json.Marshal(data) // nolint:errchkjson
 	converter := &introspection.JsonConverter{}
 
 	if document, err = converter.GraphQLDocument(bytes.NewBuffer(dataJSON)); err != nil {
@@ -127,7 +128,7 @@ func (s *schemaFetcher) introspect() (data *introspection.Data, err error) {
 	client := &http.Client{
 		Timeout: time.Duration(s.timeout),
 	}
-	requestBody, _ := json.Marshal(s.newIntrospectRequest()) // nolint:golint,errchkjson
+	requestBody, _ := json.Marshal(s.newIntrospectRequest()) // nolint:errchkjson
 	request, _ := http.NewRequestWithContext(s.context, "POST", s.upstream, bytes.NewBuffer(requestBody))
 	request.Header = s.header.Clone()
 	request.Header.Set("user-agent", "GBox Proxy")
@@ -165,7 +166,7 @@ func (s *schemaFetcher) introspect() (data *introspection.Data, err error) {
 
 func (s *schemaFetcher) getCachingIntrospectionData() (*introspection.Data, error) {
 	if s.caching == nil {
-		return nil, nil
+		return nil, nil // nolint:nilnil
 	}
 
 	data := new(introspection.Data)
@@ -206,7 +207,7 @@ func (s *schemaFetcher) schemaChanged(changedSchema *graphql.Schema) {
 		return
 	}
 
-	oldHash, _ := s.schema.Hash()
+	oldHash, _ := s.schema.Hash() // nolint:ifshort
 	newHash, _ := changedSchema.Hash()
 
 	if oldHash != newHash {

@@ -1,12 +1,13 @@
 package gbox
 
 import (
+	"net/http"
+
 	"github.com/jensneuse/graphql-go-tools/pkg/ast"
 	"github.com/jensneuse/graphql-go-tools/pkg/astnormalization"
 	"github.com/jensneuse/graphql-go-tools/pkg/astparser"
 	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
 	"github.com/pquerna/cachecontrol/cacheobject"
-	"net/http"
 )
 
 type cachingRequest struct {

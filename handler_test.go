@@ -3,13 +3,6 @@ package gbox
 import (
 	"context"
 	"fmt"
-	"github.com/99designs/gqlgen/graphql/handler"
-	"github.com/caddyserver/caddy/v2/caddytest"
-	"github.com/gbox-proxy/gbox/internal/testserver"
-	"github.com/gbox-proxy/gbox/internal/testserver/generated"
-	"github.com/prometheus/client_golang/prometheus"
-	dto "github.com/prometheus/client_model/go"
-	"github.com/stretchr/testify/suite"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -17,6 +10,14 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/caddyserver/caddy/v2/caddytest"
+	"github.com/gbox-proxy/gbox/internal/testserver"
+	"github.com/gbox-proxy/gbox/internal/testserver/generated"
+	"github.com/prometheus/client_golang/prometheus"
+	dto "github.com/prometheus/client_model/go"
+	"github.com/stretchr/testify/suite"
 )
 
 const (

@@ -3,13 +3,14 @@ package gbox
 import (
 	"errors"
 	"fmt"
+	"net/url"
+	"strconv"
+	"sync"
+
 	"github.com/coocood/freecache"
 	"github.com/eko/gocache/v2/marshaler"
 	"github.com/eko/gocache/v2/store"
 	"github.com/go-redis/redis/v8"
-	"net/url"
-	"strconv"
-	"sync"
 )
 
 var (

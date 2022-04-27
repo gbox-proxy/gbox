@@ -2,9 +2,10 @@ package gbox
 
 import (
 	"bytes"
-	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
 	"net/http"
 	"sync"
+
+	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
 )
 
 var (

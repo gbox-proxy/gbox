@@ -3,11 +3,12 @@ package gbox
 import (
 	"context"
 	"encoding/json"
+	"net/http"
+	"time"
+
 	"github.com/caddyserver/caddy/v2"
 	"github.com/eko/gocache/v2/store"
 	"github.com/pquerna/cachecontrol/cacheobject"
-	"net/http"
-	"time"
 )
 
 const (

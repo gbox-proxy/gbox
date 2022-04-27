@@ -4,17 +4,18 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
-	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
-	"github.com/jensneuse/graphql-go-tools/pkg/operationreport"
-	"go.uber.org/zap"
 	"mime"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
+	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
+	"github.com/jensneuse/graphql-go-tools/pkg/operationreport"
+	"go.uber.org/zap"
 )
 
-var ErrorHandleUnknownOperationTypeError = errors.New("unknown operation type")
+var ErrHandleUnknownOperationTypeError = errors.New("unknown operation type")
 
 // HandleRequest caching GraphQL query result by configured rules and varies.
 func (c *Caching) HandleRequest(w http.ResponseWriter, r *cachingRequest, h caddyhttp.HandlerFunc) error {
@@ -23,7 +24,7 @@ func (c *Caching) HandleRequest(w http.ResponseWriter, r *cachingRequest, h cadd
 	r.httpRequest.Header.Del("accept-encoding")
 	operationType, _ := r.gqlRequest.OperationType()
 
-	// nolint:golint,exhaustive
+	// nolint:exhaustive
 	switch operationType {
 	case graphql.OperationTypeQuery:
 		return c.handleQueryRequest(w, r, h)
@@ -31,7 +32,7 @@ func (c *Caching) HandleRequest(w http.ResponseWriter, r *cachingRequest, h cadd
 		return c.handleMutationRequest(w, r, h)
 	}
 
-	return ErrorHandleUnknownOperationTypeError
+	return ErrHandleUnknownOperationTypeError
 }
 
 func (c *Caching) handleQueryRequest(w http.ResponseWriter, r *cachingRequest, h caddyhttp.HandlerFunc) (err error) {
@@ -105,7 +106,7 @@ func (c *Caching) handleQueryRequest(w http.ResponseWriter, r *cachingRequest, h
 			return err
 		}
 
-		r.httpRequest = prepareSwrHttpRequest(c.ctxBackground, r.httpRequest, w)
+		r.httpRequest = prepareSwrHTTPRequest(c.ctxBackground, r.httpRequest, w)
 
 		go func() {
 			if err := c.swrQueryResult(c.ctxBackground, result, r, h); err != nil {

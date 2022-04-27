@@ -3,6 +3,10 @@ package gbox
 import (
 	"errors"
 	"fmt"
+	"net/url"
+	"strconv"
+	"time"
+
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
@@ -10,16 +14,13 @@ import (
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp/reverseproxy"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp/rewrite"
-	"net/url"
-	"strconv"
-	"time"
 )
 
 func init() {
 	httpcaddyfile.RegisterHandlerDirective("gbox", parseCaddyfile)
 }
 
-func parseCaddyfile(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error) {
+func parseCaddyfile(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error) { // nolint:ireturn
 	m := new(Handler).CaddyModule().New().(*Handler)
 
 	if err := m.UnmarshalCaddyfile(h.Dispenser); err != nil {
@@ -33,6 +34,7 @@ func parseCaddyfile(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error)
 	return m, nil
 }
 
+// nolint:funlen,gocyclo
 func (h *Handler) UnmarshalCaddyfile(d *caddyfile.Dispenser) (err error) {
 	for d.Next() {
 		for d.NextBlock(0) {
@@ -52,7 +54,7 @@ func (h *Handler) UnmarshalCaddyfile(d *caddyfile.Dispenser) (err error) {
 				u, err = url.Parse(val)
 
 				if err != nil {
-					return
+					return err
 				}
 
 				r := &rewrite.Rewrite{URI: u.RequestURI()}
@@ -67,20 +69,20 @@ reverse_proxy {
 				tokens, err = caddyfile.Tokenize([]byte(rpConfig), "")
 
 				if err != nil {
-					return
+					return err
 				}
 
 				err = rp.UnmarshalCaddyfile(caddyfile.NewDispenser(tokens))
 
 				if err != nil {
-					return
+					return err
 				}
 
 				// unmarshal again to add extra reverse proxy config
 				err = rp.UnmarshalCaddyfile(d.NewFromNextSegment())
 
 				if err != nil {
-					return
+					return err
 				}
 
 				h.Upstream = val
@@ -95,7 +97,7 @@ reverse_proxy {
 				disabled, err = strconv.ParseBool(d.Val())
 
 				if err != nil {
-					return
+					return err
 				}
 
 				h.DisabledIntrospection = disabled
@@ -108,7 +110,7 @@ reverse_proxy {
 				dt, err = caddy.ParseDuration(d.Val())
 
 				if err != nil {
-					return
+					return err
 				}
 
 				duration := caddy.Duration(dt)
@@ -122,7 +124,7 @@ reverse_proxy {
 				dt, err = caddy.ParseDuration(d.Val())
 
 				if err != nil {
-					return
+					return err
 				}
 
 				duration := caddy.Duration(dt)
@@ -164,7 +166,7 @@ reverse_proxy {
 				disabled, err = strconv.ParseBool(d.Val())
 
 				if err != nil {
-					return
+					return err
 				}
 
 				h.DisabledPlaygrounds = disabled
@@ -190,7 +192,7 @@ reverse_proxy {
 		}
 	}
 
-	return
+	return err
 }
 
 // Interface guards.

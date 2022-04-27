@@ -1,8 +1,9 @@
 package gbox
 
 import (
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestCachingRulesHash(t *testing.T) {

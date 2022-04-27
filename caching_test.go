@@ -2,10 +2,11 @@ package gbox
 
 import (
 	"context"
+	"testing"
+
 	"github.com/caddyserver/caddy/v2"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
-	"testing"
 )
 
 func TestCaching_Cleanup(t *testing.T) {
@@ -45,13 +46,13 @@ func TestCaching_Validate(t *testing.T) {
 		"valid_rules_with_varies": {
 			caching: &Caching{
 				Varies: map[string]*CachingVary{
-					"test": &CachingVary{},
+					"test": {},
 				},
 				Rules: CachingRules{
 					"default": &CachingRule{
 						MaxAge: 1,
 						Varies: map[string]struct{}{
-							"test": struct{}{},
+							"test": {},
 						},
 					},
 				},
@@ -72,7 +73,7 @@ func TestCaching_Validate(t *testing.T) {
 					"default": &CachingRule{
 						MaxAge: 1,
 						Varies: map[string]struct{}{
-							"test": struct{}{},
+							"test": {},
 						},
 					},
 				},

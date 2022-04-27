@@ -1,9 +1,10 @@
 package gbox
 
 import (
-	"github.com/stretchr/testify/require"
 	"net/url"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewCachingStore(t *testing.T) {

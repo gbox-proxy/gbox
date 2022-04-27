@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp/reverseproxy"
@@ -11,7 +13,6 @@ import (
 	"github.com/jensneuse/graphql-go-tools/pkg/ast"
 	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
 	"go.uber.org/zap"
-	"net/http"
 )
 
 const (
@@ -138,11 +139,9 @@ func (h *Handler) Provision(ctx caddy.Context) (err error) {
 
 	if err = sf.Provision(ctx); err != nil {
 		h.logger.Error("fail to fetch upstream schema", zap.Error(err))
-
-		return err
 	}
 
-	return
+	return err
 }
 
 func (h *Handler) Validate() error {

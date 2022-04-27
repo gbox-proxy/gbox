@@ -12,25 +12,25 @@ import (
 
 func (r *mutationTestResolver) UpdateUsers(ctx context.Context) ([]*model.UserTest, error) {
 	return []*model.UserTest{
-		&model.UserTest{
+		{
 			ID:   1,
 			Name: "A",
 			Books: []*model.BookTest{
-				&model.BookTest{
+				{
 					ID:    1,
 					Title: "A - Book 1",
 				},
-				&model.BookTest{
+				{
 					ID:    2,
 					Title: "A - Book 2",
 				},
 			},
 		},
-		&model.UserTest{
+		{
 			ID:   2,
 			Name: "B",
 			Books: []*model.BookTest{
-				&model.BookTest{
+				{
 					ID:    3,
 					Title: "B - Book 1",
 				},
@@ -42,35 +42,35 @@ func (r *mutationTestResolver) UpdateUsers(ctx context.Context) ([]*model.UserTe
 
 func (r *queryTestResolver) Users(ctx context.Context) ([]*model.UserTest, error) {
 	return []*model.UserTest{
-		&model.UserTest{
+		{
 			ID:   1,
 			Name: "A",
 			Books: []*model.BookTest{
-				&model.BookTest{
+				{
 					ID:    1,
 					Title: "A - Book 1",
 				},
-				&model.BookTest{
+				{
 					ID:    2,
 					Title: "A - Book 2",
 				},
 			},
 		},
-		&model.UserTest{
+		{
 			ID:   2,
 			Name: "B",
 			Books: []*model.BookTest{
-				&model.BookTest{
+				{
 					ID:    3,
 					Title: "B - Book 1",
 				},
 			},
 		},
-		&model.UserTest{
+		{
 			ID:   3,
 			Name: "C",
 			Books: []*model.BookTest{
-				&model.BookTest{
+				{
 					ID:    4,
 					Title: "C - Book 1",
 				},
@@ -81,19 +81,19 @@ func (r *queryTestResolver) Users(ctx context.Context) ([]*model.UserTest, error
 
 func (r *queryTestResolver) Books(ctx context.Context) ([]*model.BookTest, error) {
 	return []*model.BookTest{
-		&model.BookTest{
+		{
 			ID:    1,
 			Title: "A - Book 1",
 		},
-		&model.BookTest{
+		{
 			ID:    2,
 			Title: "A - Book 2",
 		},
-		&model.BookTest{
+		{
 			ID:    3,
 			Title: "B - Book 1",
 		},
-		&model.BookTest{
+		{
 			ID:    4,
 			Title: "C - Book 1",
 		},

@@ -3,12 +3,13 @@ package gbox
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"testing"
+
 	"github.com/eko/gocache/v2/store"
 	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
-	"net/url"
-	"testing"
 )
 
 func TestCaching_PurgeQueryResultByOperationName(t *testing.T) {

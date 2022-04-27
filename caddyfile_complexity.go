@@ -1,8 +1,9 @@
 package gbox
 
 import (
-	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"strconv"
+
+	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 )
 
 func (h *Handler) unmarshalCaddyfileComplexity(d *caddyfile.Dispenser) error {

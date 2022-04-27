@@ -1,15 +1,16 @@
 package gbox
 
 import (
+	"sync"
+	"time"
+
 	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.uber.org/zap"
-	"sync"
-	"time"
 )
 
-var metrics *Metrics = new(Metrics)
+var metrics = new(Metrics)
 
 func init() {
 	metrics.once.Do(func() {
@@ -130,7 +131,7 @@ func (h *Handler) metricsOperationLabels(request *graphql.Request) (map[string]s
 
 	operationType, _ := request.OperationType()
 
-	// nolint:golint,exhaustive
+	// nolint:exhaustive
 	switch operationType {
 	case graphql.OperationTypeQuery:
 		labels["operation_type"] = "query"

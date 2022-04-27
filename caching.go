@@ -3,10 +3,11 @@ package gbox
 import (
 	"context"
 	"fmt"
+	"net/url"
+
 	"github.com/caddyserver/caddy/v2"
 	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
 	"go.uber.org/zap"
-	"net/url"
 )
 
 var (

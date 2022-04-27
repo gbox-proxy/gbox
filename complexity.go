@@ -2,6 +2,7 @@ package gbox
 
 import (
 	"fmt"
+
 	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
 )
 

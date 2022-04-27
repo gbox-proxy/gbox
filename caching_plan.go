@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/caddyserver/caddy/v2"
 	"github.com/eko/gocache/v2/store"
 	"github.com/jensneuse/graphql-go-tools/pkg/astparser"
@@ -162,19 +163,20 @@ func (p *cachingPlanner) computePlan() (*cachingPlan, error) {
 	plan := &cachingPlan{
 		Passthrough: true,
 	}
+	rulesHash, err := p.caching.Rules.hash()
 
-	if rulesHash, err := p.caching.Rules.hash(); err != nil {
+	if err != nil {
 		return nil, err
-	} else {
-		plan.RulesHash = rulesHash
 	}
 
-	if variesHash, err := p.caching.Varies.hash(); err != nil {
+	plan.RulesHash = rulesHash
+	variesHash, err := p.caching.Varies.hash()
+
+	if err != nil {
 		return nil, err
-	} else {
-		plan.VariesHash = variesHash
 	}
 
+	plan.VariesHash = variesHash
 	requestFieldTypes := make(graphql.RequestTypes)
 	extractor := graphql.NewExtractor()
 	extractor.ExtractFieldsFromRequest(p.request.gqlRequest, p.request.schema, &operationreport.Report{}, requestFieldTypes)

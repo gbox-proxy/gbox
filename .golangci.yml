@@ -1,14 +1,22 @@
 run:
+  tests: true
   skip-dirs:
     - admin/generated
     - internal/testserver/generated
-
+  ireturn:
+    allow:
+      - anon
+      - error
+      - empty
+      - stdlib
 linters-settings:
+  goconst:
+    min-occurrences: 5
   golint:
     min-confidence: 0.1
   funlen:
-    lines: 100
-    statements: 100
+    lines: 99
+    statements: 60
 linters:
   enable-all: true
   disable:
@@ -28,10 +36,7 @@ linters:
     - tagliatelle
     - varnamelen
     - wrapcheck
-    - nolintlint
     - goerr113
-    - nilnil
-    - gci
     - gochecknoglobals
 
 issues:
