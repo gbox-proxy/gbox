@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/caddyserver/caddy/v2"
-	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	"mime"
 	"net/http"
+
+	"github.com/caddyserver/caddy/v2"
+	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 )
 
 func (c *Caching) swrQueryResult(ctx context.Context, result *cachingQueryResult, request *cachingRequest, handler caddyhttp.HandlerFunc) error {
@@ -34,7 +35,7 @@ func (c *Caching) swrQueryResult(ctx context.Context, result *cachingQueryResult
 	return nil
 }
 
-func prepareSwrHttpRequest(ctx context.Context, r *http.Request, w http.ResponseWriter) *http.Request {
+func prepareSwrHTTPRequest(ctx context.Context, r *http.Request, w http.ResponseWriter) *http.Request {
 	s := r.Context().Value(caddyhttp.ServerCtxKey).(*caddyhttp.Server)
 
 	return caddyhttp.PrepareRequest(r.Clone(ctx), caddy.NewReplacer(), w, s)

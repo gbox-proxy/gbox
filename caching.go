@@ -3,15 +3,14 @@ package gbox
 import (
 	"context"
 	"fmt"
+	"net/url"
+
 	"github.com/caddyserver/caddy/v2"
 	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
 	"go.uber.org/zap"
-	"net/url"
 )
 
-var (
-	cachingStores = caddy.NewUsagePool()
-)
+var cachingStores = caddy.NewUsagePool()
 
 type (
 	CachingStatus string
@@ -107,7 +106,6 @@ func (c *Caching) Provision(ctx caddy.Context) error {
 			store: store,
 		}, nil
 	})
-
 	if err != nil {
 		return err
 	}
@@ -140,7 +138,7 @@ func (c *Caching) Cleanup() error {
 	return err
 }
 
-// Interface guards
+// Interface guards.
 var (
 	_ caddy.Provisioner  = (*Caching)(nil)
 	_ caddy.Validator    = (*Caching)(nil)

@@ -1,14 +1,15 @@
 package gbox
 
 import (
-	"github.com/caddyserver/caddy/v2"
-	"github.com/jensneuse/graphql-go-tools/pkg/astparser"
-	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
-	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/caddyserver/caddy/v2"
+	"github.com/jensneuse/graphql-go-tools/pkg/astparser"
+	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
+	"github.com/stretchr/testify/require"
 )
 
 func TestComputeCachingPlan(t *testing.T) {
@@ -27,14 +28,14 @@ func TestComputeCachingPlan(t *testing.T) {
 			},
 			"rule3": {
 				Types: map[string]graphql.RequestFields{
-					"Book": graphql.RequestFields{},
+					"Book": {},
 				},
 				MaxAge: 1,
 				Swr:    1,
 			},
 		},
 	}
-	cr := newTestCachingRequest(t)
+	cr := newTestCachingRequest()
 	planner, _ := newCachingPlanner(cr, c)
 	require.NotNil(t, planner)
 
@@ -44,7 +45,7 @@ func TestComputeCachingPlan(t *testing.T) {
 	require.Equal(t, p.Swr, caddy.Duration(3))
 }
 
-func newTestCachingRequest(t *testing.T) *cachingRequest {
+func newTestCachingRequest() *cachingRequest {
 	s, _ := graphql.NewSchemaFromString(`
 type Query {
 	users: [User!]!
@@ -67,9 +68,7 @@ type User {
 	}
 	gqlRequest.Normalize(s)
 
-	cr, _ := newCachingRequest(r, &d, s, gqlRequest)
-
-	require.NotNil(t, cr)
+	cr := newCachingRequest(r, &d, s, gqlRequest)
 
 	return cr
 }

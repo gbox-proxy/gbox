@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp/reverseproxy"
@@ -11,15 +13,14 @@ import (
 	"github.com/jensneuse/graphql-go-tools/pkg/ast"
 	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
 	"go.uber.org/zap"
-	"net/http"
 )
 
 const (
-	errorReporterCtxKey = "gbox_error_wrapper"
-	nextHandlerCtxKey   = "gbox_caddy_handler"
+	errorReporterCtxKey caddy.CtxKey = "gbox_error_wrapper"
+	nextHandlerCtxKey   caddy.CtxKey = "gbox_caddy_handler"
 )
 
-func init() {
+func init() { // nolint:gochecknoinits
 	caddy.RegisterModule(Handler{})
 }
 
@@ -95,18 +96,20 @@ func (h *Handler) Provision(ctx caddy.Context) (err error) {
 	h.initRouter()
 
 	var m interface{}
+	m, err = ctx.LoadModule(h, "ReverseProxyRaw")
 
-	if m, err = ctx.LoadModule(h, "ReverseProxyRaw"); err != nil {
-		return fmt.Errorf("fail to load reverse proxy module: %v", err)
-	} else {
-		h.ReverseProxy = m.(*reverseproxy.Handler)
+	if err != nil {
+		return fmt.Errorf("fail to load reverse proxy module: %w", err)
 	}
 
-	if m, err = ctx.LoadModule(h, "RewriteRaw"); err != nil {
-		return fmt.Errorf("fail to load rewrite module: %v", err)
-	} else {
-		h.Rewrite = m.(*rewrite.Rewrite)
+	h.ReverseProxy = m.(*reverseproxy.Handler)
+	m, err = ctx.LoadModule(h, "RewriteRaw")
+
+	if err != nil {
+		return fmt.Errorf("fail to load rewrite module: %w", err)
 	}
+
+	h.Rewrite = m.(*rewrite.Rewrite)
 
 	if h.Caching != nil {
 		if err = h.Caching.Provision(ctx); err != nil {
@@ -136,11 +139,9 @@ func (h *Handler) Provision(ctx caddy.Context) (err error) {
 
 	if err = sf.Provision(ctx); err != nil {
 		h.logger.Error("fail to fetch upstream schema", zap.Error(err))
-
-		return err
 	}
 
-	return
+	return err
 }
 
 func (h *Handler) Validate() error {
@@ -186,7 +187,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, n caddyhttp.
 	return reporter.error
 }
 
-// Interface guards
+// Interface guards.
 var (
 	_ caddy.Module                = (*Handler)(nil)
 	_ caddy.Provisioner           = (*Handler)(nil)

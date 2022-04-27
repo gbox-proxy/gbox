@@ -3,13 +3,14 @@ package gbox
 import (
 	"errors"
 	"fmt"
+	"net/url"
+	"strconv"
+	"sync"
+
 	"github.com/coocood/freecache"
 	"github.com/eko/gocache/v2/marshaler"
 	"github.com/eko/gocache/v2/store"
 	"github.com/go-redis/redis/v8"
-	"net/url"
-	"strconv"
-	"sync"
 )
 
 var (
@@ -17,7 +18,7 @@ var (
 	cachingStoreFactoriesMu sync.RWMutex
 )
 
-func init() {
+func init() { // nolint:gochecknoinits
 	RegisterCachingStoreFactory("redis", RedisCachingStoreFactory)
 	RegisterCachingStoreFactory("freecache", FreeCacheStoreFactory)
 }
@@ -39,12 +40,13 @@ func RegisterCachingStoreFactory(schema string, factory CachingStoreFactory) {
 func NewCachingStore(u *url.URL) (*CachingStore, error) {
 	cachingStoreFactoriesMu.RLock()
 	defer cachingStoreFactoriesMu.RUnlock()
+	factory, ok := cachingStoreFactories[u.Scheme]
 
-	if factory, ok := cachingStoreFactories[u.Scheme]; !ok {
+	if !ok {
 		return nil, fmt.Errorf("caching store schema: %s is not support", u.Scheme)
-	} else {
-		return factory(u)
 	}
+
+	return factory(u)
 }
 
 func FreeCacheStoreFactory(u *url.URL) (*CachingStore, error) {
@@ -56,7 +58,6 @@ func FreeCacheStoreFactory(u *url.URL) (*CachingStore, error) {
 	}
 
 	cacheSizeInt, err := strconv.Atoi(cacheSize)
-
 	if err != nil {
 		return nil, fmt.Errorf("`cache_size` param should be numeric string, %s given", cacheSize)
 	}
@@ -82,7 +83,6 @@ func RedisCachingStoreFactory(u *url.URL) (*CachingStore, error) {
 
 	if v := q.Get("db"); v != "" {
 		db, err := strconv.Atoi(v)
-
 		if err != nil {
 			return nil, fmt.Errorf("`db` param should be numeric string, %s given", v)
 		}

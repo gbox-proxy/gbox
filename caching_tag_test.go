@@ -2,13 +2,14 @@ package gbox
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestCachingTagAnalyzer_AnalyzeResult_WithoutTypeKeys(t *testing.T) {
-	cr := newTestCachingRequest(t)
+	cr := newTestCachingRequest()
 	tags := make(cachingTags)
 	analyzer := newCachingTagAnalyzer(cr, nil)
 	err := analyzer.AnalyzeResult([]byte(`{"data": {"users":[{"name":"A"}]}}`), nil, tags)
@@ -23,7 +24,7 @@ func TestCachingTagAnalyzer_AnalyzeResult_WithoutTypeKeys(t *testing.T) {
 }
 
 func TestCachingTagAnalyzer_AnalyzeResult_WithTypeKeys(t *testing.T) {
-	cr := newTestCachingRequest(t)
+	cr := newTestCachingRequest()
 	tags := make(cachingTags)
 	analyzer := newCachingTagAnalyzer(cr, graphql.RequestTypes{
 		"User": graphql.RequestFields{
@@ -42,7 +43,7 @@ func TestCachingTagAnalyzer_AnalyzeResult_WithTypeKeys(t *testing.T) {
 }
 
 func TestCachingTagAnalyzer_AnalyzeResult_OnlyTypes(t *testing.T) {
-	cr := newTestCachingRequest(t)
+	cr := newTestCachingRequest()
 	tags := make(cachingTags)
 	analyzer := newCachingTagAnalyzer(cr, graphql.RequestTypes{
 		"User": graphql.RequestFields{
@@ -51,7 +52,7 @@ func TestCachingTagAnalyzer_AnalyzeResult_OnlyTypes(t *testing.T) {
 	})
 	err := analyzer.AnalyzeResult(
 		[]byte(`{"data": {"users":[{"name":"A"}]}}`),
-		map[string]struct{}{"Unknown": struct{}{}},
+		map[string]struct{}{"Unknown": {}},
 		tags,
 	)
 	sh, _ := cr.schema.Hash()

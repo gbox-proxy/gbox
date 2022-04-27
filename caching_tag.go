@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/jensneuse/graphql-go-tools/pkg/astvisitor"
-	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
-	"github.com/jensneuse/graphql-go-tools/pkg/operationreport"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/jensneuse/graphql-go-tools/pkg/astvisitor"
+	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
+	"github.com/jensneuse/graphql-go-tools/pkg/operationreport"
 )
 
 const (
@@ -93,9 +94,8 @@ func (c *cachingTagVisitor) addTagForTypeKey(field string, value interface{}, ty
 
 func (c *cachingTagVisitor) collectTypeKeyTags(path []string, data interface{}, typeName string) {
 	at := path[0]
-	next := path[1:]
 
-	if len(next) > 0 {
+	if next := path[1:]; len(next) > 0 {
 		switch v := data.(type) {
 		case []interface{}:
 			for _, item := range v {

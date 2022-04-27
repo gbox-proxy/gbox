@@ -3,16 +3,17 @@ package gbox
 import (
 	"context"
 	"encoding/json"
+	"net/http"
+	"time"
+
 	"github.com/caddyserver/caddy/v2"
 	"github.com/eko/gocache/v2/store"
 	"github.com/pquerna/cachecontrol/cacheobject"
-	"net/http"
-	"time"
 )
 
 const (
 	CachingQueryResultStale cachingQueryResultStatus = "STALE"
-	CachingQueryResultValid                          = "VALID"
+	CachingQueryResultValid cachingQueryResultStatus = "VALID"
 )
 
 type cachingQueryResultStatus string
@@ -141,7 +142,7 @@ func (r *cachingQueryResult) ValidFor(cc *cacheobject.RequestCacheDirectives) bo
 }
 
 func (r *cachingQueryResult) Age() time.Duration {
-	return time.Now().Sub(r.CreatedAt)
+	return time.Since(r.CreatedAt)
 }
 
 func (r *cachingQueryResult) normalizeHeader() {

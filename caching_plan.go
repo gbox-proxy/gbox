@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/caddyserver/caddy/v2"
 	"github.com/eko/gocache/v2/store"
 	"github.com/jensneuse/graphql-go-tools/pkg/astparser"
@@ -43,26 +44,26 @@ func newCachingPlanner(r *cachingRequest, c *Caching) (*cachingPlanner, error) {
 	hash := pool.Hash64.Get()
 	defer pool.Hash64.Put(hash)
 	hash.Reset()
-
-	if schemaHash, err := r.schema.Hash(); err != nil {
+	schemaHash, err := r.schema.Hash()
+	if err != nil {
 		return nil, err
-	} else {
-		hash.Write([]byte(fmt.Sprintf("schema=%d; ", schemaHash)))
 	}
+
+	hash.Write([]byte(fmt.Sprintf("schema=%d; ", schemaHash)))
 
 	gqlRequestClone := *r.gqlRequest
 	documentBuffer := bufferPool.Get().(*bytes.Buffer)
 	defer bufferPool.Put(documentBuffer)
 	documentBuffer.Reset()
 
-	if _, err := gqlRequestClone.Print(documentBuffer); err != nil {
+	if _, err = gqlRequestClone.Print(documentBuffer); err != nil {
 		return nil, err
 	}
 
 	document, _ := astparser.ParseGraphqlDocumentBytes(documentBuffer.Bytes())
 	gqlRequestClone.Query, _ = astprinter.PrintString(&document, nil)
 
-	if err := json.NewEncoder(hash).Encode(gqlRequestClone); err != nil {
+	if err = json.NewEncoder(hash).Encode(gqlRequestClone); err != nil {
 		return nil, err
 	}
 
@@ -161,19 +162,18 @@ func (p *cachingPlanner) computePlan() (*cachingPlan, error) {
 	plan := &cachingPlan{
 		Passthrough: true,
 	}
-
-	if rulesHash, err := p.caching.Rules.hash(); err != nil {
+	rulesHash, err := p.caching.Rules.hash()
+	if err != nil {
 		return nil, err
-	} else {
-		plan.RulesHash = rulesHash
 	}
 
-	if variesHash, err := p.caching.Varies.hash(); err != nil {
+	plan.RulesHash = rulesHash
+	variesHash, err := p.caching.Varies.hash()
+	if err != nil {
 		return nil, err
-	} else {
-		plan.VariesHash = variesHash
 	}
 
+	plan.VariesHash = variesHash
 	requestFieldTypes := make(graphql.RequestTypes)
 	extractor := graphql.NewExtractor()
 	extractor.ExtractFieldsFromRequest(p.request.gqlRequest, p.request.schema, &operationreport.Report{}, requestFieldTypes)

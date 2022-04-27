@@ -3,6 +3,11 @@ package gbox
 import (
 	"bytes"
 	"errors"
+	"io/ioutil"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
@@ -14,10 +19,6 @@ import (
 	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
 	"github.com/jensneuse/graphql-go-tools/pkg/operationreport"
 	"go.uber.org/zap"
-	"io/ioutil"
-	"net/http"
-	"strings"
-	"time"
 )
 
 const (
@@ -64,8 +65,6 @@ func (h *Handler) initRouter() {
 		handlers.AllowedOrigins(h.CORSOrigins),
 		handlers.AllowedHeaders(h.CORSAllowedHeaders),
 	)(router)
-
-	return
 }
 
 // GraphQLOverWebsocketHandle handling websocket connection between client & upstream.
@@ -93,8 +92,7 @@ func (h *Handler) GraphQLHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gqlRequest, err := h.unmarshalHttpRequest(r)
-
+	gqlRequest, err := h.unmarshalHTTPRequest(r)
 	if err != nil {
 		h.logger.Debug("unmarshal GQL cachingRequest from http cachingRequest failure", zap.Error(err))
 		reporter.error = writeResponseErrors(err, w)
@@ -129,14 +127,7 @@ func (h *Handler) GraphQLHandle(w http.ResponseWriter, r *http.Request) {
 	n := r.Context().Value(nextHandlerCtxKey).(caddyhttp.Handler)
 
 	if h.Caching != nil {
-		cachingRequest, err := newCachingRequest(r, h.schemaDocument, h.schema, gqlRequest)
-
-		if err != nil {
-			reporter.error = writeResponseErrors(err, w)
-
-			return
-		}
-
+		cachingRequest := newCachingRequest(r, h.schemaDocument, h.schema, gqlRequest)
 		reverse := caddyhttp.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return h.ReverseProxy.ServeHTTP(w, r, n)
 		})
@@ -153,17 +144,16 @@ func (h *Handler) GraphQLHandle(w http.ResponseWriter, r *http.Request) {
 	reporter.error = h.ReverseProxy.ServeHTTP(w, r, n)
 }
 
-func (h *Handler) unmarshalHttpRequest(r *http.Request) (*graphql.Request, error) {
+func (h *Handler) unmarshalHTTPRequest(r *http.Request) (*graphql.Request, error) {
 	gqlRequest := new(graphql.Request)
 	rawBody, _ := ioutil.ReadAll(r.Body)
 	r.Body = ioutil.NopCloser(bytes.NewBuffer(rawBody))
-	copyHttpRequest, err := http.NewRequest(r.Method, r.URL.String(), ioutil.NopCloser(bytes.NewBuffer(rawBody)))
-
+	copyHTTPRequest, err := http.NewRequest(r.Method, r.URL.String(), ioutil.NopCloser(bytes.NewBuffer(rawBody))) // nolint:noctx
 	if err != nil {
 		return nil, err
 	}
 
-	err = graphql.UnmarshalHttpRequest(copyHttpRequest, gqlRequest)
+	err = graphql.UnmarshalHttpRequest(copyHTTPRequest, gqlRequest)
 
 	if err != nil {
 		return nil, err

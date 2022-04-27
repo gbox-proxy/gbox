@@ -3,13 +3,6 @@ package gbox
 import (
 	"context"
 	"fmt"
-	"github.com/99designs/gqlgen/graphql/handler"
-	"github.com/caddyserver/caddy/v2/caddytest"
-	"github.com/gbox-proxy/gbox/internal/testserver"
-	"github.com/gbox-proxy/gbox/internal/testserver/generated"
-	"github.com/prometheus/client_golang/prometheus"
-	dto "github.com/prometheus/client_model/go"
-	"github.com/stretchr/testify/suite"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -17,6 +10,14 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/caddyserver/caddy/v2/caddytest"
+	"github.com/gbox-proxy/gbox/internal/testserver"
+	"github.com/gbox-proxy/gbox/internal/testserver/generated"
+	"github.com/prometheus/client_golang/prometheus"
+	dto "github.com/prometheus/client_model/go"
+	"github.com/stretchr/testify/suite"
 )
 
 const (
@@ -754,10 +755,12 @@ func (s *HandlerIntegrationTestSuite) TestEnabledPlaygrounds() {
 disabled_playgrounds false
 `), "caddyfile")
 	r, _ := http.NewRequest("GET", "http://localhost:9090/", nil)
-	tester.AssertResponseCode(r, http.StatusOK)
+	resp := tester.AssertResponseCode(r, http.StatusOK)
+	resp.Body.Close()
 
 	r, _ = http.NewRequest("GET", "http://localhost:9090/admin", nil)
-	tester.AssertResponseCode(r, http.StatusNotFound) // when not enable caching, admin play ground should not affect.
+	resp = tester.AssertResponseCode(r, http.StatusNotFound) // when not enable caching, admin play ground should not affect.
+	resp.Body.Close()
 
 	tester.InitServer(fmt.Sprintf(caddyfilePattern, `
 disabled_playgrounds false
@@ -766,10 +769,12 @@ caching {
 `), "caddyfile")
 
 	r, _ = http.NewRequest("GET", "http://localhost:9090/admin", nil)
-	tester.AssertResponseCode(r, http.StatusOK) // now it should be enabled.
+	resp = tester.AssertResponseCode(r, http.StatusOK) // now it should be enabled.
+	resp.Body.Close()
 
 	r, _ = http.NewRequest("GET", "http://localhost:9090", nil)
-	tester.AssertResponseCode(r, http.StatusOK)
+	resp = tester.AssertResponseCode(r, http.StatusOK)
+	resp.Body.Close()
 }
 
 func (s *HandlerIntegrationTestSuite) TestDisabledPlaygrounds() {
@@ -779,10 +784,12 @@ func (s *HandlerIntegrationTestSuite) TestDisabledPlaygrounds() {
 disabled_playgrounds true
 `), "caddyfile")
 	r, _ := http.NewRequest("GET", "http://localhost:9090", nil)
-	tester.AssertResponseCode(r, http.StatusNotFound)
+	resp := tester.AssertResponseCode(r, http.StatusNotFound)
+	resp.Body.Close()
 
 	r, _ = http.NewRequest("GET", "http://localhost:9090/admin", nil)
-	tester.AssertResponseCode(r, http.StatusNotFound)
+	resp = tester.AssertResponseCode(r, http.StatusNotFound)
+	resp.Body.Close()
 }
 
 func (s *HandlerIntegrationTestSuite) TestMetrics() {

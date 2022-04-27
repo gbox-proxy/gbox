@@ -1,17 +1,18 @@
 package gbox
 
 import (
+	"sync"
+	"time"
+
 	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.uber.org/zap"
-	"sync"
-	"time"
 )
 
-var metrics *Metrics = new(Metrics)
+var metrics = new(Metrics)
 
-func init() {
+func init() { // nolint:gochecknoinits
 	metrics.once.Do(func() {
 		const ns, sub = "caddy", "http_gbox"
 		operationLabels := []string{"operation_type", "operation_name"}
@@ -66,7 +67,6 @@ type cachingMetrics interface {
 
 func (h *Handler) addMetricsBeginRequest(request *graphql.Request) {
 	labels, err := h.metricsOperationLabels(request)
-
 	if err != nil {
 		h.logger.Warn("fail to get metrics operation labels", zap.Error(err))
 
@@ -79,7 +79,6 @@ func (h *Handler) addMetricsBeginRequest(request *graphql.Request) {
 
 func (h *Handler) addMetricsEndRequest(request *graphql.Request, d time.Duration) {
 	labels, err := h.metricsOperationLabels(request)
-
 	if err != nil {
 		h.logger.Warn("fail to get metrics operation labels", zap.Error(err))
 
@@ -92,7 +91,6 @@ func (h *Handler) addMetricsEndRequest(request *graphql.Request, d time.Duration
 
 func (h *Handler) addMetricsCaching(request *graphql.Request, status CachingStatus) {
 	labels, err := h.metricsCachingLabels(request, status)
-
 	if err != nil {
 		h.logger.Warn("fail to get metrics caching labels", zap.Error(err))
 
@@ -130,6 +128,7 @@ func (h *Handler) metricsOperationLabels(request *graphql.Request) (map[string]s
 
 	operationType, _ := request.OperationType()
 
+	// nolint:exhaustive
 	switch operationType {
 	case graphql.OperationTypeQuery:
 		labels["operation_type"] = "query"

@@ -2,6 +2,7 @@ package gbox
 
 import (
 	"fmt"
+
 	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
 )
 
@@ -18,7 +19,6 @@ type Complexity struct {
 
 func (c *Complexity) validateRequest(s *graphql.Schema, r *graphql.Request) (requestErrors graphql.RequestErrors) {
 	result, err := r.CalculateComplexity(graphql.DefaultComplexityCalculator, s)
-
 	if err != nil {
 		requestErrors = graphql.RequestErrorsFromError(err)
 

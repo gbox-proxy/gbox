@@ -1,12 +1,13 @@
 package gbox
 
 import (
+	"net/http"
+
 	"github.com/jensneuse/graphql-go-tools/pkg/ast"
 	"github.com/jensneuse/graphql-go-tools/pkg/astnormalization"
 	"github.com/jensneuse/graphql-go-tools/pkg/astparser"
 	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
 	"github.com/pquerna/cachecontrol/cacheobject"
-	"net/http"
 )
 
 type cachingRequest struct {
@@ -17,7 +18,7 @@ type cachingRequest struct {
 	cacheControl          *cacheobject.RequestCacheDirectives
 }
 
-func newCachingRequest(r *http.Request, d *ast.Document, s *graphql.Schema, gr *graphql.Request) (*cachingRequest, error) {
+func newCachingRequest(r *http.Request, d *ast.Document, s *graphql.Schema, gr *graphql.Request) *cachingRequest {
 	cr := &cachingRequest{
 		httpRequest: r,
 		schema:      s,
@@ -28,7 +29,7 @@ func newCachingRequest(r *http.Request, d *ast.Document, s *graphql.Schema, gr *
 	cacheControlString := r.Header.Get("cache-control")
 	cr.cacheControl, _ = cacheobject.ParseRequestCacheControl(cacheControlString)
 
-	return cr, nil
+	return cr
 }
 
 func (r *cachingRequest) initOperation() error {

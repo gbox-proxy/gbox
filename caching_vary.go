@@ -2,6 +2,7 @@ package gbox
 
 import (
 	"encoding/json"
+
 	"github.com/jensneuse/graphql-go-tools/pkg/pool"
 )
 

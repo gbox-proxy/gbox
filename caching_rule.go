@@ -2,6 +2,7 @@ package gbox
 
 import (
 	"encoding/json"
+
 	"github.com/caddyserver/caddy/v2"
 	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
 	"github.com/jensneuse/graphql-go-tools/pkg/pool"

@@ -1,8 +1,9 @@
 package gbox
 
 import (
-	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"strconv"
+
+	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 )
 
 func (h *Handler) unmarshalCaddyfileComplexity(d *caddyfile.Dispenser) error {
@@ -18,7 +19,6 @@ func (h *Handler) unmarshalCaddyfileComplexity(d *caddyfile.Dispenser) error {
 				}
 
 				v, err := strconv.ParseBool(d.Val())
-
 				if err != nil {
 					return err
 				}
@@ -30,7 +30,6 @@ func (h *Handler) unmarshalCaddyfileComplexity(d *caddyfile.Dispenser) error {
 				}
 
 				v, err := strconv.ParseInt(d.Val(), 10, 32)
-
 				if err != nil {
 					return err
 				}
@@ -42,7 +41,6 @@ func (h *Handler) unmarshalCaddyfileComplexity(d *caddyfile.Dispenser) error {
 				}
 
 				v, err := strconv.ParseInt(d.Val(), 10, 32)
-
 				if err != nil {
 					return err
 				}
@@ -54,7 +52,6 @@ func (h *Handler) unmarshalCaddyfileComplexity(d *caddyfile.Dispenser) error {
 				}
 
 				v, err := strconv.ParseInt(d.Val(), 10, 32)
-
 				if err != nil {
 					return err
 				}

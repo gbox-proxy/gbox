@@ -1,8 +1,9 @@
 package gbox
 
 import (
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestCachingVariesHash(t *testing.T) {
@@ -15,7 +16,7 @@ func TestCachingVariesHash(t *testing.T) {
 	varies = CachingVaries{
 		"default": &CachingVary{
 			Cookies: map[string]struct{}{
-				"session": struct{}{},
+				"session": {},
 			},
 		},
 	}
