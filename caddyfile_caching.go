@@ -23,7 +23,6 @@ func (h *Handler) unmarshalCaddyfileCaching(d *caddyfile.Dispenser) error {
 				}
 
 				val, err := strconv.ParseBool(d.Val())
-
 				if err != nil {
 					return err
 				}
@@ -35,7 +34,6 @@ func (h *Handler) unmarshalCaddyfileCaching(d *caddyfile.Dispenser) error {
 				}
 
 				_, err := url.Parse(d.Val())
-
 				if err != nil {
 					return err
 				}
@@ -59,7 +57,6 @@ func (h *Handler) unmarshalCaddyfileCaching(d *caddyfile.Dispenser) error {
 				}
 
 				val, err := strconv.ParseBool(d.Val())
-
 				if err != nil {
 					return err
 				}
@@ -71,7 +68,6 @@ func (h *Handler) unmarshalCaddyfileCaching(d *caddyfile.Dispenser) error {
 				}
 
 				val, err := strconv.ParseBool(d.Val())
-
 				if err != nil {
 					return err
 				}
@@ -110,7 +106,6 @@ func (c *Caching) unmarshalCaddyfileRules(d *caddyfile.Dispenser) error {
 					}
 
 					v, err := caddy.ParseDuration(d.Val())
-
 					if err != nil {
 						return err
 					}
@@ -122,7 +117,6 @@ func (c *Caching) unmarshalCaddyfileRules(d *caddyfile.Dispenser) error {
 					}
 
 					v, err := caddy.ParseDuration(d.Val())
-
 					if err != nil {
 						return err
 					}

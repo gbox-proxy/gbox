@@ -8,13 +8,11 @@ import (
 	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
 )
 
-var (
-	bufferPool = sync.Pool{
-		New: func() interface{} {
-			return new(bytes.Buffer)
-		},
-	}
-)
+var bufferPool = sync.Pool{
+	New: func() interface{} {
+		return new(bytes.Buffer)
+	},
+}
 
 func writeResponseErrors(errors error, w http.ResponseWriter) error {
 	gqlErrors := graphql.RequestErrorsFromError(errors)

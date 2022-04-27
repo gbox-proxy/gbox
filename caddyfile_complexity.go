@@ -19,7 +19,6 @@ func (h *Handler) unmarshalCaddyfileComplexity(d *caddyfile.Dispenser) error {
 				}
 
 				v, err := strconv.ParseBool(d.Val())
-
 				if err != nil {
 					return err
 				}
@@ -31,7 +30,6 @@ func (h *Handler) unmarshalCaddyfileComplexity(d *caddyfile.Dispenser) error {
 				}
 
 				v, err := strconv.ParseInt(d.Val(), 10, 32)
-
 				if err != nil {
 					return err
 				}
@@ -43,7 +41,6 @@ func (h *Handler) unmarshalCaddyfileComplexity(d *caddyfile.Dispenser) error {
 				}
 
 				v, err := strconv.ParseInt(d.Val(), 10, 32)
-
 				if err != nil {
 					return err
 				}
@@ -55,7 +52,6 @@ func (h *Handler) unmarshalCaddyfileComplexity(d *caddyfile.Dispenser) error {
 				}
 
 				v, err := strconv.ParseInt(d.Val(), 10, 32)
-
 				if err != nil {
 					return err
 				}

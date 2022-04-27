@@ -106,5 +106,7 @@ func (r *Resolver) MutationTest() generated.MutationTestResolver { return &mutat
 // QueryTest returns generated.QueryTestResolver implementation.
 func (r *Resolver) QueryTest() generated.QueryTestResolver { return &queryTestResolver{r} }
 
-type mutationTestResolver struct{ *Resolver }
-type queryTestResolver struct{ *Resolver }
+type (
+	mutationTestResolver struct{ *Resolver }
+	queryTestResolver    struct{ *Resolver }
+)

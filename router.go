@@ -93,7 +93,6 @@ func (h *Handler) GraphQLHandle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	gqlRequest, err := h.unmarshalHTTPRequest(r)
-
 	if err != nil {
 		h.logger.Debug("unmarshal GQL cachingRequest from http cachingRequest failure", zap.Error(err))
 		reporter.error = writeResponseErrors(err, w)
@@ -150,7 +149,6 @@ func (h *Handler) unmarshalHTTPRequest(r *http.Request) (*graphql.Request, error
 	rawBody, _ := ioutil.ReadAll(r.Body)
 	r.Body = ioutil.NopCloser(bytes.NewBuffer(rawBody))
 	copyHTTPRequest, err := http.NewRequest(r.Method, r.URL.String(), ioutil.NopCloser(bytes.NewBuffer(rawBody))) // nolint:noctx
-
 	if err != nil {
 		return nil, err
 	}

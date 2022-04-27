@@ -16,7 +16,7 @@ import (
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp/rewrite"
 )
 
-func init() {
+func init() { // nolint:gochecknoinits
 	httpcaddyfile.RegisterHandlerDirective("gbox", parseCaddyfile)
 }
 

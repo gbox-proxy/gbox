@@ -83,7 +83,6 @@ func (s *schemaFetcher) startInterval() {
 
 func (s *schemaFetcher) fetch() error {
 	data, err := s.introspect()
-
 	if err != nil {
 		return err
 	}

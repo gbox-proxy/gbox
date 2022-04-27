@@ -3,12 +3,7 @@ run:
   skip-dirs:
     - admin/generated
     - internal/testserver/generated
-  ireturn:
-    allow:
-      - anon
-      - error
-      - empty
-      - stdlib
+
 linters-settings:
   goconst:
     min-occurrences: 5
@@ -16,14 +11,13 @@ linters-settings:
     min-confidence: 0.1
   funlen:
     lines: 99
-    statements: 60
+    statements: 50
+
 linters:
   enable-all: true
   disable:
-    - containedctx
     - gocognit
-    - gochecknoinits
-    - gofumpt
+    - containedctx
     - errcheck
     - lll
     - wsl
@@ -38,6 +32,12 @@ linters:
     - wrapcheck
     - goerr113
     - gochecknoglobals
+
+    # deprecated
+    - interfacer
+    - maligned
+    - scopelint
+    - golint
 
 issues:
   exclude-rules:
@@ -54,3 +54,7 @@ issues:
     - path: internal/testserver/schema.resolvers\.go
       linters:
         - ireturn
+        - noctx
+        - dupl
+        - funlen
+        - errcheck

@@ -20,7 +20,7 @@ const (
 	nextHandlerCtxKey   caddy.CtxKey = "gbox_caddy_handler"
 )
 
-func init() {
+func init() { // nolint:gochecknoinits
 	caddy.RegisterModule(Handler{})
 }
 

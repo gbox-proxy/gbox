@@ -45,7 +45,6 @@ func newCachingPlanner(r *cachingRequest, c *Caching) (*cachingPlanner, error) {
 	defer pool.Hash64.Put(hash)
 	hash.Reset()
 	schemaHash, err := r.schema.Hash()
-
 	if err != nil {
 		return nil, err
 	}
@@ -164,14 +163,12 @@ func (p *cachingPlanner) computePlan() (*cachingPlan, error) {
 		Passthrough: true,
 	}
 	rulesHash, err := p.caching.Rules.hash()
-
 	if err != nil {
 		return nil, err
 	}
 
 	plan.RulesHash = rulesHash
 	variesHash, err := p.caching.Varies.hash()
-
 	if err != nil {
 		return nil, err
 	}

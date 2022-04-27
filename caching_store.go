@@ -18,7 +18,7 @@ var (
 	cachingStoreFactoriesMu sync.RWMutex
 )
 
-func init() {
+func init() { // nolint:gochecknoinits
 	RegisterCachingStoreFactory("redis", RedisCachingStoreFactory)
 	RegisterCachingStoreFactory("freecache", FreeCacheStoreFactory)
 }
@@ -58,7 +58,6 @@ func FreeCacheStoreFactory(u *url.URL) (*CachingStore, error) {
 	}
 
 	cacheSizeInt, err := strconv.Atoi(cacheSize)
-
 	if err != nil {
 		return nil, fmt.Errorf("`cache_size` param should be numeric string, %s given", cacheSize)
 	}
@@ -84,7 +83,6 @@ func RedisCachingStoreFactory(u *url.URL) (*CachingStore, error) {
 
 	if v := q.Get("db"); v != "" {
 		db, err := strconv.Atoi(v)
-
 		if err != nil {
 			return nil, fmt.Errorf("`db` param should be numeric string, %s given", v)
 		}

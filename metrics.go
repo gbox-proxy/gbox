@@ -12,7 +12,7 @@ import (
 
 var metrics = new(Metrics)
 
-func init() {
+func init() { // nolint:gochecknoinits
 	metrics.once.Do(func() {
 		const ns, sub = "caddy", "http_gbox"
 		operationLabels := []string{"operation_type", "operation_name"}
@@ -67,7 +67,6 @@ type cachingMetrics interface {
 
 func (h *Handler) addMetricsBeginRequest(request *graphql.Request) {
 	labels, err := h.metricsOperationLabels(request)
-
 	if err != nil {
 		h.logger.Warn("fail to get metrics operation labels", zap.Error(err))
 
@@ -80,7 +79,6 @@ func (h *Handler) addMetricsBeginRequest(request *graphql.Request) {
 
 func (h *Handler) addMetricsEndRequest(request *graphql.Request, d time.Duration) {
 	labels, err := h.metricsOperationLabels(request)
-
 	if err != nil {
 		h.logger.Warn("fail to get metrics operation labels", zap.Error(err))
 
@@ -93,7 +91,6 @@ func (h *Handler) addMetricsEndRequest(request *graphql.Request, d time.Duration
 
 func (h *Handler) addMetricsCaching(request *graphql.Request, status CachingStatus) {
 	labels, err := h.metricsCachingLabels(request, status)
-
 	if err != nil {
 		h.logger.Warn("fail to get metrics caching labels", zap.Error(err))
 

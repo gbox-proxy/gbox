@@ -132,7 +132,6 @@ func (c *Caching) resolvePlan(r *cachingRequest, p *cachingPlan) (CachingStatus,
 
 	if result != nil && (r.cacheControl == nil || result.ValidFor(r.cacheControl)) {
 		err := c.increaseQueryResultHitTimes(r.httpRequest.Context(), result)
-
 		if err != nil {
 			c.logger.Error("increase query result hit times failed", zap.String("cache_key", p.queryResultCacheKey), zap.Error(err))
 		}

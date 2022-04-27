@@ -10,9 +10,7 @@ import (
 	"go.uber.org/zap"
 )
 
-var (
-	cachingStores = caddy.NewUsagePool()
-)
+var cachingStores = caddy.NewUsagePool()
 
 type (
 	CachingStatus string
@@ -108,7 +106,6 @@ func (c *Caching) Provision(ctx caddy.Context) error {
 			store: store,
 		}, nil
 	})
-
 	if err != nil {
 		return err
 	}
