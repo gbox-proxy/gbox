@@ -1016,7 +1016,7 @@ func (s *HandlerIntegrationTestSuite) TestCachingControlRequestHeader() {
 		},
 		{
 			name:                  "max_age_with_invalid_max_stale_cc_result_stale_will_miss",
-			waitTime:              time.Second * 2,
+			waitTime:              time.Millisecond * 2050,
 			cc:                    "max-age=1, max-stale=1",
 			expectedCachingStatus: CachingStatusMiss,
 		},
