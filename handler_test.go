@@ -1032,6 +1032,12 @@ func (s *HandlerIntegrationTestSuite) TestCachingControlRequestHeader() {
 			expectedCachingStatus: CachingStatusMiss,
 		},
 		{
+			name:                  "empty_max_stale_cc_will_hit",
+			waitTime:              time.Millisecond * 55,
+			cc:                    "max-stale",
+			expectedCachingStatus: CachingStatusHit,
+		},
+		{
 			name:                  "valid_max_stale_cc_will_hit",
 			waitTime:              time.Millisecond * 55,
 			cc:                    "max-stale=1",
