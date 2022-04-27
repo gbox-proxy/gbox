@@ -54,7 +54,3 @@ issues:
     - path: internal/testserver/schema.resolvers\.go
       linters:
         - ireturn
-        - noctx
-        - dupl
-        - funlen
-        - errcheck
