@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
-	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
 	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
 	"net"
@@ -52,6 +51,11 @@ func (c *wsMetricsConn) Read(b []byte) (n int, err error) {
 	n, err = c.Conn.Read(b)
 
 	if err != nil {
+		if c.request != nil {
+			c.addMetricsEndRequest(c.request, time.Since(c.subscribeAt))
+			c.request = nil
+		}
+
 		return
 	}
 
@@ -61,9 +65,8 @@ func (c *wsMetricsConn) Read(b []byte) (n int, err error) {
 	buff.Write(b[:n])
 
 	r := wsutil.NewServerSideReader(buff)
-	hdr, e := r.NextFrame()
 
-	if e != nil {
+	if _, e := r.NextFrame(); e != nil {
 		return
 	}
 
@@ -74,20 +77,14 @@ func (c *wsMetricsConn) Read(b []byte) (n int, err error) {
 	}{}
 
 	// TODO: implement decompress message via `Sec-WebSocket-Extensions` upgrade header.
-	if hdr.OpCode == ws.OpClose && c.request != nil {
-		c.addMetricsEndRequest(c.request, time.Since(c.subscribeAt))
-
-		return
-	}
-
-	if e = decoder.Decode(msg); e != nil {
+	if e := decoder.Decode(msg); e != nil {
 		return
 	}
 
 	if msg.Type == "subscribe" || msg.Type == "start" {
 		request := new(graphql.Request)
 
-		if e = json.Unmarshal(msg.Payload, request); e != nil {
+		if e := json.Unmarshal(msg.Payload, request); e != nil {
 			return
 		}
 
