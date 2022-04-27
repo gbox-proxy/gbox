@@ -130,6 +130,7 @@ func (h *Handler) metricsOperationLabels(request *graphql.Request) (map[string]s
 
 	operationType, _ := request.OperationType()
 
+	// nolint:golint,exhaustive
 	switch operationType {
 	case graphql.OperationTypeQuery:
 		labels["operation_type"] = "query"

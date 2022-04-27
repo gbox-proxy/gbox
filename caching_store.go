@@ -39,12 +39,13 @@ func RegisterCachingStoreFactory(schema string, factory CachingStoreFactory) {
 func NewCachingStore(u *url.URL) (*CachingStore, error) {
 	cachingStoreFactoriesMu.RLock()
 	defer cachingStoreFactoriesMu.RUnlock()
+	factory, ok := cachingStoreFactories[u.Scheme]
 
-	if factory, ok := cachingStoreFactories[u.Scheme]; !ok {
+	if !ok {
 		return nil, fmt.Errorf("caching store schema: %s is not support", u.Scheme)
-	} else {
-		return factory(u)
 	}
+
+	return factory(u)
 }
 
 func FreeCacheStoreFactory(u *url.URL) (*CachingStore, error) {

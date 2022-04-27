@@ -43,26 +43,27 @@ func newCachingPlanner(r *cachingRequest, c *Caching) (*cachingPlanner, error) {
 	hash := pool.Hash64.Get()
 	defer pool.Hash64.Put(hash)
 	hash.Reset()
+	schemaHash, err := r.schema.Hash()
 
-	if schemaHash, err := r.schema.Hash(); err != nil {
+	if err != nil {
 		return nil, err
-	} else {
-		hash.Write([]byte(fmt.Sprintf("schema=%d; ", schemaHash)))
 	}
+
+	hash.Write([]byte(fmt.Sprintf("schema=%d; ", schemaHash)))
 
 	gqlRequestClone := *r.gqlRequest
 	documentBuffer := bufferPool.Get().(*bytes.Buffer)
 	defer bufferPool.Put(documentBuffer)
 	documentBuffer.Reset()
 
-	if _, err := gqlRequestClone.Print(documentBuffer); err != nil {
+	if _, err = gqlRequestClone.Print(documentBuffer); err != nil {
 		return nil, err
 	}
 
 	document, _ := astparser.ParseGraphqlDocumentBytes(documentBuffer.Bytes())
 	gqlRequestClone.Query, _ = astprinter.PrintString(&document, nil)
 
-	if err := json.NewEncoder(hash).Encode(gqlRequestClone); err != nil {
+	if err = json.NewEncoder(hash).Encode(gqlRequestClone); err != nil {
 		return nil, err
 	}
 

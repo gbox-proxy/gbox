@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-var handleUnknownOperationTypeError = errors.New("unknown operation type")
+var ErrorHandleUnknownOperationTypeError = errors.New("unknown operation type")
 
 // HandleRequest caching GraphQL query result by configured rules and varies.
 func (c *Caching) HandleRequest(w http.ResponseWriter, r *cachingRequest, h caddyhttp.HandlerFunc) error {
@@ -23,6 +23,7 @@ func (c *Caching) HandleRequest(w http.ResponseWriter, r *cachingRequest, h cadd
 	r.httpRequest.Header.Del("accept-encoding")
 	operationType, _ := r.gqlRequest.OperationType()
 
+	// nolint:golint,exhaustive
 	switch operationType {
 	case graphql.OperationTypeQuery:
 		return c.handleQueryRequest(w, r, h)
@@ -30,7 +31,7 @@ func (c *Caching) HandleRequest(w http.ResponseWriter, r *cachingRequest, h cadd
 		return c.handleMutationRequest(w, r, h)
 	}
 
-	return handleUnknownOperationTypeError
+	return ErrorHandleUnknownOperationTypeError
 }
 
 func (c *Caching) handleQueryRequest(w http.ResponseWriter, r *cachingRequest, h caddyhttp.HandlerFunc) (err error) {
@@ -40,6 +41,7 @@ func (c *Caching) handleQueryRequest(w http.ResponseWriter, r *cachingRequest, h
 
 	if err != nil {
 		report.AddInternalError(err)
+
 		return report
 	}
 
@@ -55,7 +57,7 @@ func (c *Caching) handleQueryRequest(w http.ResponseWriter, r *cachingRequest, h
 		crw := newCachingResponseWriter(bodyBuff)
 
 		if err = h(crw, r.httpRequest); err != nil {
-			return
+			return err
 		}
 
 		defer func() {
@@ -73,7 +75,7 @@ func (c *Caching) handleQueryRequest(w http.ResponseWriter, r *cachingRequest, h
 		}
 
 		if !shouldCache {
-			return
+			return err
 		}
 
 		bodyBuffCopy := bufferPool.Get().(*bytes.Buffer)
@@ -100,7 +102,7 @@ func (c *Caching) handleQueryRequest(w http.ResponseWriter, r *cachingRequest, h
 		_, err = w.Write(result.Body)
 
 		if err != nil || result.Status() != CachingQueryResultStale {
-			return
+			return err
 		}
 
 		r.httpRequest = prepareSwrHttpRequest(c.ctxBackground, r.httpRequest, w)
@@ -117,7 +119,7 @@ func (c *Caching) handleQueryRequest(w http.ResponseWriter, r *cachingRequest, h
 		err = h(w, r.httpRequest)
 	}
 
-	return
+	return err
 }
 
 func (c *Caching) resolvePlan(r *cachingRequest, p *cachingPlan) (CachingStatus, *cachingQueryResult) {
@@ -206,7 +208,7 @@ func (c *Caching) handleMutationRequest(w http.ResponseWriter, r *cachingRequest
 	err = h(crw, r.httpRequest)
 
 	if err != nil {
-		return
+		return err
 	}
 
 	defer func() {
@@ -216,7 +218,7 @@ func (c *Caching) handleMutationRequest(w http.ResponseWriter, r *cachingRequest
 	mt, _, _ := mime.ParseMediaType(crw.Header().Get("content-type"))
 
 	if crw.Status() != http.StatusOK || mt != "application/json" {
-		return
+		return err
 	}
 
 	foundTags := make(cachingTags)
@@ -225,13 +227,13 @@ func (c *Caching) handleMutationRequest(w http.ResponseWriter, r *cachingRequest
 	if aErr := tagAnalyzer.AnalyzeResult(crw.buffer.Bytes(), nil, foundTags); aErr != nil {
 		c.logger.Info("fail to analyze result tags", zap.Error(aErr))
 
-		return
+		return err
 	}
 
 	purgeTags := foundTags.TypeKeys().ToSlice()
 
 	if len(purgeTags) == 0 {
-		return
+		return err
 	}
 
 	if c.DebugHeaders {
@@ -244,5 +246,5 @@ func (c *Caching) handleMutationRequest(w http.ResponseWriter, r *cachingRequest
 		}
 	}()
 
-	return
+	return err
 }

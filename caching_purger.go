@@ -35,11 +35,14 @@ func (c *Caching) PurgeQueryResultByTypeKey(ctx context.Context, typeName, field
 	switch v := value.(type) {
 	case string:
 		cacheKey = fmt.Sprintf(cachingTagTypeKeyPattern, typeName, fieldName, v)
+
 		return c.purgeQueryResultByTags(ctx, []string{cacheKey})
 	case int:
 		cacheKey = fmt.Sprintf(cachingTagTypeKeyPattern, typeName, fieldName, strconv.Itoa(v))
+
 		return c.purgeQueryResultByTags(ctx, []string{cacheKey})
 	default:
+
 		return fmt.Errorf("only support purging type key value int or string, got %T", v)
 	}
 }

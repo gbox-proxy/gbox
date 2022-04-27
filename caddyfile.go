@@ -193,7 +193,7 @@ reverse_proxy {
 	return
 }
 
-// Interface guards
+// Interface guards.
 var (
 	_ caddyfile.Unmarshaler = (*Handler)(nil)
 )

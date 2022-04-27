@@ -76,7 +76,6 @@ func (c *wsMetricsConn) Read(b []byte) (n int, err error) {
 		Payload json.RawMessage `json:"payload"`
 	}{}
 
-	// TODO: implement decompress message via `Sec-WebSocket-Extensions` upgrade header.
 	if e := decoder.Decode(msg); e != nil {
 		return
 	}

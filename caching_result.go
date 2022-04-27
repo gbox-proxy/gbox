@@ -12,7 +12,7 @@ import (
 
 const (
 	CachingQueryResultStale cachingQueryResultStatus = "STALE"
-	CachingQueryResultValid                          = "VALID"
+	CachingQueryResultValid cachingQueryResultStatus = "VALID"
 )
 
 type cachingQueryResultStatus string
@@ -141,7 +141,7 @@ func (r *cachingQueryResult) ValidFor(cc *cacheobject.RequestCacheDirectives) bo
 }
 
 func (r *cachingQueryResult) Age() time.Duration {
-	return time.Now().Sub(r.CreatedAt)
+	return time.Since(r.CreatedAt)
 }
 
 func (r *cachingQueryResult) normalizeHeader() {

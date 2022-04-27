@@ -93,9 +93,8 @@ func (c *cachingTagVisitor) addTagForTypeKey(field string, value interface{}, ty
 
 func (c *cachingTagVisitor) collectTypeKeyTags(path []string, data interface{}, typeName string) {
 	at := path[0]
-	next := path[1:]
 
-	if len(next) > 0 {
+	if next := path[1:]; len(next) > 0 {
 		switch v := data.(type) {
 		case []interface{}:
 			for _, item := range v {

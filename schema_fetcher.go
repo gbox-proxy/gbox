@@ -23,7 +23,7 @@ const (
 
 type schemaChangedHandler func(oldDocument, newDocument *ast.Document, oldSchema, newSchema *graphql.Schema)
 
-// schemaFetcher help to fetch SDL of upstream
+// schemaFetcher help to fetch SDL of upstream.
 type schemaFetcher struct {
 	// Upstream url
 	upstream string
@@ -70,6 +70,7 @@ func (s *schemaFetcher) startInterval() {
 		select {
 		case <-s.context.Done():
 			s.logger.Info("fetch schema interval context cancelled")
+
 			return
 		case <-interval.C:
 			if err := s.fetch(); err != nil {
@@ -92,10 +93,10 @@ func (s *schemaFetcher) fetch() error {
 func (s *schemaFetcher) fetchByIntrospectionData(data *introspection.Data) (err error) {
 	var newSchema *graphql.Schema
 	var document *ast.Document
-	dataJson, _ := json.Marshal(data)
+	dataJSON, _ := json.Marshal(data)
 	converter := &introspection.JsonConverter{}
 
-	if document, err = converter.GraphQLDocument(bytes.NewBuffer(dataJson)); err != nil {
+	if document, err = converter.GraphQLDocument(bytes.NewBuffer(dataJSON)); err != nil {
 		return err
 	}
 
@@ -126,7 +127,7 @@ func (s *schemaFetcher) introspect() (data *introspection.Data, err error) {
 	client := &http.Client{
 		Timeout: time.Duration(s.timeout),
 	}
-	requestBody, _ := json.Marshal(s.newIntrospectRequest())
+	requestBody, _ := json.Marshal(s.newIntrospectRequest()) // nolint:golint,errchkjson
 	request, _ := http.NewRequestWithContext(s.context, "POST", s.upstream, bytes.NewBuffer(requestBody))
 	request.Header = s.header.Clone()
 	request.Header.Set("user-agent", "GBox Proxy")
@@ -140,6 +141,7 @@ func (s *schemaFetcher) introspect() (data *introspection.Data, err error) {
 		return nil, err
 	}
 
+	defer response.Body.Close()
 	rawResponseBody, _ := ioutil.ReadAll(response.Body)
 
 	var responseBody struct {

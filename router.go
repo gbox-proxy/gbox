@@ -64,8 +64,6 @@ func (h *Handler) initRouter() {
 		handlers.AllowedOrigins(h.CORSOrigins),
 		handlers.AllowedHeaders(h.CORSAllowedHeaders),
 	)(router)
-
-	return
 }
 
 // GraphQLOverWebsocketHandle handling websocket connection between client & upstream.
@@ -129,14 +127,7 @@ func (h *Handler) GraphQLHandle(w http.ResponseWriter, r *http.Request) {
 	n := r.Context().Value(nextHandlerCtxKey).(caddyhttp.Handler)
 
 	if h.Caching != nil {
-		cachingRequest, err := newCachingRequest(r, h.schemaDocument, h.schema, gqlRequest)
-
-		if err != nil {
-			reporter.error = writeResponseErrors(err, w)
-
-			return
-		}
-
+		cachingRequest := newCachingRequest(r, h.schemaDocument, h.schema, gqlRequest)
 		reverse := caddyhttp.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return h.ReverseProxy.ServeHTTP(w, r, n)
 		})

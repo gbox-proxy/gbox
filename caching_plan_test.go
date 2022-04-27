@@ -67,9 +67,7 @@ type User {
 	}
 	gqlRequest.Normalize(s)
 
-	cr, _ := newCachingRequest(r, &d, s, gqlRequest)
-
-	require.NotNil(t, cr)
+	cr := newCachingRequest(r, &d, s, gqlRequest)
 
 	return cr
 }

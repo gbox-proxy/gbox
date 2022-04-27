@@ -140,7 +140,7 @@ func (c *Caching) Cleanup() error {
 	return err
 }
 
-// Interface guards
+// Interface guards.
 var (
 	_ caddy.Provisioner  = (*Caching)(nil)
 	_ caddy.Validator    = (*Caching)(nil)

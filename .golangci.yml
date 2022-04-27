@@ -1,0 +1,51 @@
+run:
+  skip-dirs:
+    - admin/generated
+    - internal/testserver/generated
+
+linters-settings:
+  golint:
+    min-confidence: 0.1
+  funlen:
+    lines: 100
+    statements: 100
+linters:
+  enable-all: true
+  disable:
+    - containedctx
+    - gocognit
+    - gochecknoinits
+    - gofumpt
+    - errcheck
+    - lll
+    - wsl
+    - gomnd
+    - testpackage
+    - exhaustivestruct
+    - paralleltest
+    - cyclop
+    - forcetypeassert
+    - tagliatelle
+    - varnamelen
+    - wrapcheck
+    - nolintlint
+    - goerr113
+    - nilnil
+    - gci
+    - gochecknoglobals
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - ireturn
+        - noctx
+        - dupl
+        - funlen
+        - errcheck
+    - path: admin/schema.resolvers\.go
+      linters:
+        - ireturn
+    - path: internal/testserver/schema.resolvers\.go
+      linters:
+        - ireturn
