@@ -1,0 +1,127 @@
+before:
+  hooks:
+  - go mod download
+
+snapshot:
+  name_template: "{{ .Tag }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^ci:'
+      - '^build:'
+      - '^chore:'
+
+release:
+  prerelease: auto
+
+env:
+  - CGO_ENABLED=0
+
+builds:
+  - id: main
+    dir: cmd
+    binary: gbox
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - 386
+      - amd64
+      - arm
+      - arm64
+    goarm:
+      - 5
+      - 6
+      - 7
+
+archives:
+- builds:
+  - main
+  replacements:
+    darwin: Darwin
+    linux: Linux
+    windows: Windows
+    386: i386
+    amd64: x86_64
+  files:
+    - LICENSE
+    - Caddyfile.dist
+  format_overrides:
+    - goos: windows
+      format: zip
+
+dockers:
+  - ids:
+    - main
+    goos: linux
+    goarch: amd64
+    image_templates:
+      - 'gboxproxy/gbox:{{ .Tag }}-amd64'
+      - 'gboxproxy/gbox:v{{ .Major }}-amd64'
+      - 'gboxproxy/gbox:v{{ .Major }}.{{ .Minor }}-amd64'
+      - 'gboxproxy/gbox:latest-amd64'
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/amd64"
+    extra_files:
+      - Caddyfile.dist
+  - ids:
+      - main
+    goos: linux
+    goarch: arm64
+    image_templates:
+      - 'gboxproxy/gbox:{{ .Tag }}-arm64v8'
+      - 'gboxproxy/gbox:v{{ .Major }}-arm64v8'
+      - 'gboxproxy/gbox:v{{ .Major }}.{{ .Minor }}-arm64v8'
+      - 'gboxproxy/gbox:latest-arm64v8'
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/arm64/v8"
+    extra_files:
+      - Caddyfile.dist
+
+docker_manifests:
+  - name_template: gboxproxy/gbox:{{ .Tag }}
+    image_templates:
+      - gboxproxy/gbox:{{ .Tag }}-amd64
+      - gboxproxy/gbox:{{ .Tag }}-arm64v8
+  - name_template: gboxproxy/gbox:v{{ .Major }}
+    image_templates:
+      - gboxproxy/gbox:v{{ .Major }}-amd64
+      - gboxproxy/gbox:v{{ .Major }}-arm64v8
+  - name_template: gboxproxy/gbox:v{{ .Major }}.{{ .Minor }}
+    image_templates:
+      - gboxproxy/gbox:v{{ .Major }}.{{ .Minor }}-amd64
+      - gboxproxy/gbox:v{{ .Major }}.{{ .Minor }}-arm64v8
+  - name_template: gboxproxy/gbox:latest
+    image_templates:
+      - gboxproxy/gbox:latest-amd64
+      - gboxproxy/gbox:latest-arm64v8
+
+docker_signs:
+  - cmd: cosign
+    env:
+      - COSIGN_EXPERIMENTAL=1
+    args:
+      - sign
+      - '${artifact}'
+    artifacts: all
+    output: true
+
+signs:
+  - cmd: cosign
+    env:
+      - COSIGN_EXPERIMENTAL=1
+    certificate: '${artifact}.pem'
+    args:
+      - sign-blob
+      - '--output-certificate=${certificate}'
+      - '--output-signature=${signature}'
+      - '${artifact}'
+    artifacts: checksum
+    output: true
