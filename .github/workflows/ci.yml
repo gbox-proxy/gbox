@@ -41,7 +41,7 @@ jobs:
 
     - run: go get
 
-    - run: go test -race -covermode atomic -coverprofile=coverage.txt -coverpkg=github.com/gbox-proxy/gbox ./...
+    - run: go test -race -covermode atomic -coverprofile=coverage.txt -coverpkg=github.com/gbox-proxy/gbox,github.com/gbox-proxy/gbox/admin ./...
 
     - uses: codecov/codecov-action@v3
       with:
