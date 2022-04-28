@@ -26,8 +26,6 @@ const (
 		http_port     9090
 		https_port    9443
 	}
-	localhost:9090 {
-	}
 `
 	caddyfilePattern = `
 	{
