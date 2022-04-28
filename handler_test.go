@@ -408,6 +408,7 @@ func (s *HandlerIntegrationTestSuite) TestCachingEnabledAutoInvalidate() {
 	const mutationPayload = `{"query": "mutation InvalidateUsers { updateUsers { id } }"}`
 	testCases := []struct {
 		name                  string
+		executeAfter          time.Duration
 		expectedHitTimes      string
 		expectedCachingStatus CachingStatus
 		expectedBody          string
@@ -428,6 +429,7 @@ func (s *HandlerIntegrationTestSuite) TestCachingEnabledAutoInvalidate() {
 			expectedHitTimes:      "1",
 			payload:               payloadNameOnly,
 			expectedCachingTags:   `field:QueryTest:users, field:UserTest:name, operation:UsersNameOnly, schema:4230843191964202593, type:QueryTest, type:UserTest`,
+			executeAfter:          time.Millisecond * 5,
 		},
 		{
 			name:                  "type_keys_miss_on_first_time",
@@ -442,6 +444,7 @@ func (s *HandlerIntegrationTestSuite) TestCachingEnabledAutoInvalidate() {
 			expectedHitTimes:      "1",
 			payload:               payload,
 			expectedCachingTags:   `field:QueryTest:users, field:UserTest:id, field:UserTest:name, key:UserTest:id:1, key:UserTest:id:2, key:UserTest:id:3, operation:Users, schema:4230843191964202593, type:QueryTest, type:UserTest`,
+			executeAfter:          time.Millisecond * 5,
 		},
 		{
 			name:                "mutation_invalidate_query_result",
@@ -481,6 +484,8 @@ caching {
 	tester.InitServer(fmt.Sprintf(caddyfilePattern, config), "caddyfile")
 
 	for _, testCase := range testCases {
+		<-time.After(testCase.executeAfter)
+
 		r, _ := http.NewRequest(
 			"POST",
 			"http://localhost:9090/graphql",
@@ -510,6 +515,7 @@ func (s *HandlerIntegrationTestSuite) TestCachingDisabledAutoInvalidate() {
 	const mutationPayload = `{"query": "mutation InvalidateUsers { updateUsers { id } }"}`
 	testCases := []struct {
 		name                  string
+		executeAfter          time.Duration
 		expectedHitTimes      string
 		expectedCachingStatus CachingStatus
 		expectedBody          string
@@ -528,6 +534,7 @@ func (s *HandlerIntegrationTestSuite) TestCachingDisabledAutoInvalidate() {
 			expectedBody:          `{"data":{"users":[{"id":1,"name":"A"},{"id":2,"name":"B"},{"id":3,"name":"C"}]}}`,
 			expectedHitTimes:      "1",
 			payload:               payload,
+			executeAfter:          time.Millisecond * 5,
 		},
 		{
 			name:                "mutation_invalidated_query_result_disabled",
@@ -560,6 +567,8 @@ caching {
 	tester.InitServer(fmt.Sprintf(caddyfilePattern, config), "caddyfile")
 
 	for _, testCase := range testCases {
+		<-time.After(testCase.executeAfter)
+
 		r, _ := http.NewRequest(
 			"POST",
 			"http://localhost:9090/graphql",
@@ -585,6 +594,7 @@ caching {
 func (s *HandlerIntegrationTestSuite) TestCachingVaries() {
 	testCases := []struct {
 		name                  string
+		executeAfter          time.Duration
 		expectedHitTimes      string
 		expectedCachingStatus CachingStatus
 		expectedBody          string
@@ -603,6 +613,7 @@ func (s *HandlerIntegrationTestSuite) TestCachingVaries() {
 			expectedCachingStatus: CachingStatusHit,
 			expectedBody:          `{"data":{"users":[{"name":"A"},{"name":"B"},{"name":"C"}]}}`,
 			expectedHitTimes:      "1",
+			executeAfter:          time.Millisecond * 5,
 		},
 		{
 			name:                  "miss_on_difference_vary_headers",
@@ -630,6 +641,7 @@ func (s *HandlerIntegrationTestSuite) TestCachingVaries() {
 					"x-test": "1",
 				},
 			},
+			executeAfter: time.Millisecond * 5,
 		},
 		{
 			name:                  "miss_on_difference_vary_cookies",
@@ -657,6 +669,7 @@ func (s *HandlerIntegrationTestSuite) TestCachingVaries() {
 					"x-test": "1",
 				},
 			},
+			executeAfter: time.Millisecond * 5,
 		},
 		{
 			name:                  "miss_on_difference_vary_headers_cookies",
@@ -690,6 +703,7 @@ func (s *HandlerIntegrationTestSuite) TestCachingVaries() {
 					"x-test": "2",
 				},
 			},
+			executeAfter: time.Millisecond * 5,
 		},
 	}
 
@@ -716,6 +730,8 @@ caching {
 	tester.InitServer(fmt.Sprintf(caddyfilePattern, config), "caddyfile")
 
 	for _, testCase := range testCases {
+		<-time.After(testCase.executeAfter)
+
 		r, _ := http.NewRequest(
 			"POST",
 			"http://localhost:9090/graphql",
@@ -978,7 +994,7 @@ func (s *HandlerIntegrationTestSuite) TestCachingControlRequestHeader() {
 		name                  string
 		cc                    string
 		expectedCachingStatus CachingStatus
-		waitTime              time.Duration
+		executeAfter          time.Duration
 	}{
 		{
 			name:                  "first_time_cc_no_store",
@@ -1002,49 +1018,49 @@ func (s *HandlerIntegrationTestSuite) TestCachingControlRequestHeader() {
 		},
 		{
 			name:                  "max_age_with_valid_max_stale_cc_result_stale_still_hit",
-			waitTime:              time.Millisecond * 50,
+			executeAfter:          time.Millisecond * 50,
 			cc:                    "max-age=1, max-stale=2",
 			expectedCachingStatus: CachingStatusHit,
 		},
 		{
 			name:                  "max_age_with_empty_max_stale_cc_result_stale_still_hit",
-			waitTime:              time.Millisecond * 50,
+			executeAfter:          time.Millisecond * 50,
 			cc:                    "max-age=1, max-stale",
 			expectedCachingStatus: CachingStatusHit,
 		},
 		{
 			name:                  "max_age_with_invalid_max_stale_cc_result_stale_will_miss",
-			waitTime:              time.Millisecond * 2050,
+			executeAfter:          time.Millisecond * 2050,
 			cc:                    "max-age=1, max-stale=1",
 			expectedCachingStatus: CachingStatusMiss,
 		},
 		{
 			name:                  "max_age_without_max_stale_cc_result_stale_will_miss",
-			waitTime:              time.Millisecond * 50,
+			executeAfter:          time.Millisecond * 50,
 			cc:                    "max-age=1",
 			expectedCachingStatus: CachingStatusMiss,
 		},
 		{
 			name:                  "invalid_min_fresh_cc_will_miss",
-			waitTime:              time.Second,
+			executeAfter:          time.Second,
 			cc:                    "min-fresh=1",
 			expectedCachingStatus: CachingStatusMiss,
 		},
 		{
 			name:                  "invalid_max_stale_cc_will_miss",
-			waitTime:              time.Millisecond * 1050,
+			executeAfter:          time.Millisecond * 1050,
 			cc:                    "max-stale=1",
 			expectedCachingStatus: CachingStatusMiss,
 		},
 		{
 			name:                  "empty_max_stale_cc_will_hit",
-			waitTime:              time.Millisecond * 55,
+			executeAfter:          time.Millisecond * 55,
 			cc:                    "max-stale",
 			expectedCachingStatus: CachingStatusHit,
 		},
 		{
 			name:                  "valid_max_stale_cc_will_hit",
-			waitTime:              time.Millisecond * 55,
+			executeAfter:          time.Millisecond * 55,
 			cc:                    "max-stale=1",
 			expectedCachingStatus: CachingStatusHit,
 		},
@@ -1063,7 +1079,7 @@ caching {
 `), "caddyfile")
 
 	for _, testCase := range testCases {
-		<-time.After(testCase.waitTime)
+		<-time.After(testCase.executeAfter)
 
 		r, _ := http.NewRequest(
 			"POST",
