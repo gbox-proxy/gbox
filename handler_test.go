@@ -380,7 +380,7 @@ caching {
 	tester.InitServer(fmt.Sprintf(caddyfilePattern, config), "caddyfile")
 
 	for _, testCase := range testCases {
-		<-time.After(testCase.executeAfter)
+		<-time.After(testCase.executeAfter) // wait for caching in background
 
 		r, _ := http.NewRequest(
 			"POST",
@@ -484,7 +484,7 @@ caching {
 	tester.InitServer(fmt.Sprintf(caddyfilePattern, config), "caddyfile")
 
 	for _, testCase := range testCases {
-		<-time.After(testCase.executeAfter)
+		<-time.After(testCase.executeAfter) // wait for caching in background
 
 		r, _ := http.NewRequest(
 			"POST",
@@ -567,7 +567,7 @@ caching {
 	tester.InitServer(fmt.Sprintf(caddyfilePattern, config), "caddyfile")
 
 	for _, testCase := range testCases {
-		<-time.After(testCase.executeAfter)
+		<-time.After(testCase.executeAfter) // wait for caching in background
 
 		r, _ := http.NewRequest(
 			"POST",
@@ -730,7 +730,7 @@ caching {
 	tester.InitServer(fmt.Sprintf(caddyfilePattern, config), "caddyfile")
 
 	for _, testCase := range testCases {
-		<-time.After(testCase.executeAfter)
+		<-time.After(testCase.executeAfter) // wait for caching in background
 
 		r, _ := http.NewRequest(
 			"POST",
@@ -964,6 +964,7 @@ caching {
 				// always miss on first time.
 				s.Require().Equalf(string(CachingStatusMiss), resp.Header.Get("x-cache"), "case %s: cache status must MISS on first time", testCase.name)
 			} else {
+				<-time.After(time.Millisecond * 5) // wait for caching in background
 				s.Require().Equalf(string(CachingStatusHit), resp.Header.Get("x-cache"), "case %s: cache status must HIT on next time", testCase.name)
 				s.Require().Equalf(strconv.Itoa(i), resp.Header.Get("x-cache-hits"), "case %s: hit times not equal", testCase.name)
 			}
@@ -1079,7 +1080,7 @@ caching {
 `), "caddyfile")
 
 	for _, testCase := range testCases {
-		<-time.After(testCase.executeAfter)
+		<-time.After(testCase.executeAfter) // wait for caching in background
 
 		r, _ := http.NewRequest(
 			"POST",
