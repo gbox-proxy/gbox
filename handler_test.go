@@ -942,14 +942,14 @@ caching {
 			body, _ := io.ReadAll(resp.Body)
 			resp.Body.Close()
 
-			s.Require().Equal(string(body), `{"data":{"users":[{"id":1,"name":"A"},{"id":2,"name":"B"},{"id":3,"name":"C"}]}}`, "unexpected response")
+			s.Require().Equalf(string(body), `{"data":{"users":[{"id":1,"name":"A"},{"id":2,"name":"B"},{"id":3,"name":"C"}]}}`, "case %s: unexpected response", testCase.name)
 
 			if i == 0 {
 				// always miss on first time.
-				s.Require().Equal(string(CachingStatusMiss), resp.Header.Get("x-cache"), "cache status must MISS on first time")
+				s.Require().Equalf(string(CachingStatusMiss), resp.Header.Get("x-cache"), "case %s: cache status must MISS on first time", testCase.name)
 			} else {
-				s.Require().Equal(string(CachingStatusHit), resp.Header.Get("x-cache"), "cache status must HIT on next time")
-				s.Require().Equal(strconv.Itoa(i), resp.Header.Get("x-cache-hits"), "hit times not equal")
+				s.Require().Equalf(string(CachingStatusHit), resp.Header.Get("x-cache"), "case %s: cache status must HIT on next time", testCase.name)
+				s.Require().Equalf(strconv.Itoa(i), resp.Header.Get("x-cache-hits"), "case %s: hit times not equal", testCase.name)
 			}
 		}
 
