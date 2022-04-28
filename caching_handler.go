@@ -79,20 +79,11 @@ func (c *Caching) handleQueryRequest(w http.ResponseWriter, r *cachingRequest, h
 			return err
 		}
 
-		bodyBuffCopy := bufferPool.Get().(*bytes.Buffer)
-		bodyBuffCopy.Reset()
-		bodyBuffCopy.Write(crw.buffer.Bytes())
+		err = c.cachingQueryResult(r.httpRequest.Context(), r, plan, crw.buffer.Bytes(), crw.Header().Clone())
 
-		go func(header http.Header) {
-			defer bufferPool.Put(bodyBuffCopy)
-			err := c.cachingQueryResult(c.ctxBackground, r, plan, bodyBuffCopy.Bytes(), header)
-
-			if err != nil {
-				c.logger.Info("fail to cache query result", zap.Error(err))
-			} else {
-				c.logger.Info("caching query result successful", zap.String("cache_key", plan.queryResultCacheKey))
-			}
-		}(crw.Header().Clone())
+		if err == nil {
+			c.logger.Info("caching query result successful", zap.String("cache_key", plan.queryResultCacheKey))
+		}
 	case CachingStatusHit:
 		for header, values := range result.Header {
 			w.Header()[header] = values
@@ -110,7 +101,7 @@ func (c *Caching) handleQueryRequest(w http.ResponseWriter, r *cachingRequest, h
 
 		go func() {
 			if err := c.swrQueryResult(c.ctxBackground, result, r, h); err != nil {
-				c.logger.Info("swr failed, can not update query result", zap.String("cache_key", plan.queryResultCacheKey), zap.Error(err))
+				c.logger.Error("swr failed, can not update query result", zap.String("cache_key", plan.queryResultCacheKey), zap.Error(err))
 			} else {
 				c.logger.Info("swr query result successful", zap.String("cache_key", plan.queryResultCacheKey))
 			}
