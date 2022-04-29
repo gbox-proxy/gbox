@@ -21,56 +21,43 @@ type SchemaFetcherTestSuite struct {
 }
 
 func (s *SchemaFetcherTestSuite) TestProvision() {
-	sh := schemaChangedHandler(func(oldDocument, newDocument *ast.Document, oldSchema, newSchema *graphql.Schema) {
-		s.Require().NotNil(newDocument)
-		s.Require().NotNil(newSchema)
-	})
-	i := caddy.Duration(time.Millisecond * 100)
 	c := &Caching{}
 	s.Require().NoError(c.Provision(caddy.Context{}))
 
 	testCases := []struct {
 		name             string
 		upstream         string
-		interval         *caddy.Duration
 		expectedErrorMsg string
-		onSchemaChange   schemaChangedHandler
 		caching          *Caching
 	}{
 		{
-			name:           "disabled_interval",
-			upstream:       "http://localhost:9091",
-			onSchemaChange: sh,
+			name:     "without_caching",
+			upstream: "http://localhost:9091",
 		},
 		{
-			name:           "with_caching",
-			upstream:       "http://localhost:9091",
-			onSchemaChange: sh,
-			caching:        c,
+			name:     "with_caching",
+			upstream: "http://localhost:9091",
+			caching:  c,
 		},
 		{
-			name:           "interval",
-			upstream:       "http://localhost:9091",
-			onSchemaChange: sh,
-			interval:       &i,
-		},
-		{
-			name:             "connection_refused",
+			name:             "invalid_upstream",
 			upstream:         "http://localhost:9092",
 			expectedErrorMsg: "connection refused",
 		},
 	}
 
 	for _, testCase := range testCases {
+		sh := schemaChangedHandler(func(oldDocument, newDocument *ast.Document, oldSchema, newSchema *graphql.Schema) {
+			s.Require().NotNilf(newDocument, "case %s: new document should not be nil", testCase.name)
+			s.Require().NotNil(newSchema, "case %s: new schema should not be nil", testCase.name)
+		})
 		ctx, cancel := context.WithCancel(context.Background())
-
 		f := &schemaFetcher{
 			context:         ctx,
 			upstream:        testCase.upstream,
 			timeout:         caddy.Duration(time.Millisecond * 50),
-			onSchemaChanged: testCase.onSchemaChange,
-			interval:        testCase.interval,
-			header:          make(http.Header, 0),
+			onSchemaChanged: sh,
+			header:          make(http.Header),
 			caching:         c,
 			logger:          zap.NewNop(),
 		}
@@ -86,15 +73,6 @@ func (s *SchemaFetcherTestSuite) TestProvision() {
 		}
 
 		s.Require().NoErrorf(e, "case %s: should not error", testCase.name)
-		s.Require().NotNil(f.schema, "case %s: schema should not be nil", testCase.name)
-
-		if testCase.interval != nil {
-			f.schema = nil
-			<-time.After(time.Duration(*testCase.interval) + time.Millisecond*100)
-
-			s.Require().NotNil(f.schema, "case %s: schema should not be nil", testCase.name)
-		}
-
 		cancel()
 	}
 }
