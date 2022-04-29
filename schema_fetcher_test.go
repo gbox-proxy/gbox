@@ -21,14 +21,13 @@ type SchemaFetcherTestSuite struct {
 }
 
 func (s *SchemaFetcherTestSuite) TestInterval() {
-	var called bool
+	i := caddy.Duration(time.Millisecond)
+	ctx, cancel := context.WithCancel(context.Background())
 	sh := schemaChangedHandler(func(oldDocument, newDocument *ast.Document, oldSchema, newSchema *graphql.Schema) {
 		s.Require().NotNil(newDocument)
 		s.Require().NotNil(newSchema)
-		called = true
+		cancel()
 	})
-	ctx, cancel := context.WithCancel(context.Background())
-	i := caddy.Duration(time.Millisecond)
 	f := &schemaFetcher{
 		upstream:        "http://localhost:9091",
 		interval:        &i,
@@ -37,12 +36,8 @@ func (s *SchemaFetcherTestSuite) TestInterval() {
 		header:          make(http.Header),
 		logger:          zap.NewNop(),
 	}
-	go func() {
-		<-time.After(time.Millisecond * 10)
-		cancel()
-	}()
+
 	f.startInterval()
-	s.Require().True(called)
 }
 
 func (s *SchemaFetcherTestSuite) TestProvision() {
