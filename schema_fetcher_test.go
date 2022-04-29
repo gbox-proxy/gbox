@@ -38,7 +38,7 @@ func (s *SchemaFetcherTestSuite) TestInterval() {
 		logger:          zap.NewNop(),
 	}
 	go f.startInterval()
-	<-time.After(time.Millisecond * 5)
+	<-time.After(time.Millisecond * 10)
 	cancel()
 	s.Require().True(called)
 }
