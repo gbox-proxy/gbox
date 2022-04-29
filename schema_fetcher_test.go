@@ -37,9 +37,11 @@ func (s *SchemaFetcherTestSuite) TestInterval() {
 		header:          make(http.Header),
 		logger:          zap.NewNop(),
 	}
-	go f.startInterval()
-	<-time.After(time.Millisecond * 10)
-	cancel()
+	go func() {
+		<-time.After(time.Millisecond * 10)
+		cancel()
+	}()
+	f.startInterval()
 	s.Require().True(called)
 }
 
