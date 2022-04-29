@@ -20,36 +20,57 @@ type SchemaFetcherTestSuite struct {
 	suite.Suite
 }
 
+func (s *SchemaFetcherTestSuite) TestInterval() {
+	var called bool
+	sh := schemaChangedHandler(func(oldDocument, newDocument *ast.Document, oldSchema, newSchema *graphql.Schema) {
+		s.Require().NotNil(newDocument)
+		s.Require().NotNil(newSchema)
+		called = true
+	})
+	ctx, cancel := context.WithCancel(context.Background())
+	i := caddy.Duration(time.Millisecond)
+	f := &schemaFetcher{
+		upstream:        "http://localhost:9091",
+		interval:        &i,
+		onSchemaChanged: sh,
+		context:         ctx,
+		header:          make(http.Header),
+		logger:          zap.NewNop(),
+	}
+	go f.startInterval()
+	<-time.After(time.Millisecond * 5)
+	cancel()
+	s.Require().True(called)
+}
+
 func (s *SchemaFetcherTestSuite) TestProvision() {
 	c := &Caching{}
 	s.Require().NoError(c.Provision(caddy.Context{}))
 
-	testCases := []struct {
-		name             string
+	testCases := map[string]struct {
 		upstream         string
 		expectedErrorMsg string
 		caching          *Caching
 	}{
-		{
-			name:     "without_caching",
+		"without_caching": {
 			upstream: "http://localhost:9091",
 		},
-		{
-			name:     "with_caching",
+		"with_caching": {
 			upstream: "http://localhost:9091",
 			caching:  c,
 		},
-		{
-			name:             "invalid_upstream",
+		"invalid_upstream": {
 			upstream:         "http://localhost:9092",
 			expectedErrorMsg: "connection refused",
 		},
 	}
 
-	for _, testCase := range testCases {
+	for name, testCase := range testCases {
+		var called bool
 		sh := schemaChangedHandler(func(oldDocument, newDocument *ast.Document, oldSchema, newSchema *graphql.Schema) {
-			s.Require().NotNilf(newDocument, "case %s: new document should not be nil", testCase.name)
-			s.Require().NotNil(newSchema, "case %s: new schema should not be nil", testCase.name)
+			s.Require().NotNilf(newDocument, "case %s: new document should not be nil", name)
+			s.Require().NotNil(newSchema, "case %s: new schema should not be nil", name)
+			called = true
 		})
 		ctx, cancel := context.WithCancel(context.Background())
 		f := &schemaFetcher{
@@ -65,14 +86,15 @@ func (s *SchemaFetcherTestSuite) TestProvision() {
 		e := f.Provision(caddy.Context{})
 
 		if testCase.expectedErrorMsg != "" {
-			s.Require().Errorf(e, "case %s: should error", testCase.name)
-			s.Require().Containsf(e.Error(), testCase.expectedErrorMsg, "case %s: unexpected error message", testCase.name)
+			s.Require().Errorf(e, "case %s: should error", name)
+			s.Require().Containsf(e.Error(), testCase.expectedErrorMsg, "case %s: unexpected error message", name)
 			cancel()
 
 			return
 		}
 
-		s.Require().NoErrorf(e, "case %s: should not error", testCase.name)
+		s.Require().NoErrorf(e, "case %s: should not error", name)
+		s.Require().Truef(called, "case %s: should be call schema change handler", name)
 		cancel()
 	}
 }
