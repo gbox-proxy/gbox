@@ -2,8 +2,8 @@ name: Release Chart
 
 on:
   push:
-    tags:
-      - 'v*'      
+    branches:
+      - main
 
 permissions:
   contents: write # needed to write releases
