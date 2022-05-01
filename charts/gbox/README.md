@@ -21,7 +21,6 @@ To install the chart with the release name `my-release`, run the following comma
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| adminAuth | object | `{"enabled":true,"password":"","username":"gbox"}` | Admin auth configuration. |
 | adminAuth.enabled | bool | `true` | Whether enable basic auth when interact with GraphQL admin endpoint. |
 | adminAuth.password | string | "gbox" | Basic auth password. |
 | adminAuth.username | string | `"gbox"` | Basic auth username. |
@@ -55,7 +54,6 @@ To install the chart with the release name `my-release`, run the following comma
 | ingress.hosts[0].paths[0].path | string | `"/"` |  |
 | ingress.hosts[0].paths[0].pathType | string | `"ImplementationSpecific"` |  |
 | ingress.tls | list | See [values.yaml](values.yaml). | Ingress TLS configuration. |
-| metrics | object | `{"enabled":true,"path":"/metrics"}` | Prometheus metric endpoint configuration |
 | metrics.enabled | bool | `true` | Whether enable Prometheus metric endpoint or not |
 | metrics.path | string | `"/metrics"` | Url path of metric endpoint. |
 | nameOverride | string | `""` | A name in place of the chart name for `app:` labels. |

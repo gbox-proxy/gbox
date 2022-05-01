@@ -168,7 +168,6 @@ caching:
 # -- GBox extra directives, useful in cases you may want to add CORS config and/or http headers when fetch schema from upstream.
 extraDirectives: ''
 
-# -- Admin auth configuration.
 adminAuth:
   # -- Whether enable basic auth when interact with GraphQL admin endpoint.
   enabled: true
@@ -180,7 +179,6 @@ adminAuth:
   # @default -- "gbox"
   password: ''
 
-# Redis sub-chart configuration
 redis:
   # -- Whether enable Redis sub-chart or not.
   enabled: true
@@ -191,7 +189,6 @@ redis:
   auth:
     password: '!ChangeMe!'
 
-# -- Prometheus metric endpoint configuration
 metrics:
   # -- Whether enable Prometheus metric endpoint or not
   enabled: true
