@@ -25,6 +25,8 @@ jobs:
         with:
           version: v3.5.0
 
+      - run: helm repo add bitnami https://charts.bitnami.com/bitnami
+
       - uses: helm/chart-releaser-action@v1.2.1
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
