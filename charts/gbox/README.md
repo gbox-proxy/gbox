@@ -4,8 +4,6 @@
 
 GBox Helm chart for Kubernetes. GBox is a reverse proxy in front of any GraphQL server for caching, securing and monitoring.
 
-[Learn more about Hasura.](https://hasura.io)
-
 ## Installing the Chart
 
 To install the chart with the release name `my-release`, run the following commands:
