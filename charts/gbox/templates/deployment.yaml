@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "gbox.fullname" . }}
+  labels:
+    {{- include "gbox.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "gbox.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "gbox.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "gbox.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: GBOX_GLOBAL_DIRECTIVES
+              value: {{ .Values.globalDirectives | quote }}
+            - name: GBOX_EXTRA_DIRECTIVES
+              value: {{ .Values.extraDirectives | quote }}
+            - name: GBOX_SERVER_NAME
+              value: ':80'
+            - name: GBOX_UPSTREAM
+              value: {{ .Values.upstream | quote }}
+            - name: GBOX_UPSTREAM_REVERSE_PROXY_DIRECTIVES
+              value: {{ .Values.reverseProxyDirectives | quote }}
+            - name: GBOX_FETCH_SCHEMA_INTERVAL
+              value: {{ .Values.fetchSchemaInterval | quote }}
+            - name: GBOX_DISABLED_PLAYGROUNDS
+              value: {{ .Values.disabledPlaygrounds | quote }}
+            - name: GBOX_DISABLED_INTROSPECTION
+              value: {{ .Values.disabledIntrospection | quote }}
+            - name: GBOX_ENABLED_ADMIN_AUTH
+              value: {{ .Values.adminAuth.enabled | quote }}
+            - name: GBOX_ENABLED_CACHING
+              value: {{ .Values.caching.enabled | quote }}
+            - name: GBOX_CACHING_RULES
+              value: {{ .Values.caching.rules | quote }}
+            - name: GBOX_CACHING_VARIES
+              value: {{ .Values.caching.varies | quote }}
+            - name: GBOX_CACHING_TYPE_KEYS
+              value: {{ .Values.caching.typeKeys | quote }}
+            - name: GBOX_AUTO_INVALIDATE_CACHE
+              value: {{ .Values.caching.autoInvalidateCache | quote }}
+            - name: GBOX_CACHING_DEBUG_HEADERS
+              value: {{ .Values.caching.debugHeaders | quote }}
+            - name: GBOX_ENABLED_COMPLEXITY
+              value: {{ .Values.complexity.enabled | quote }}
+            - name: GBOX_NODE_COUNT_LIMIT
+              value: {{ .Values.complexity.nodeCountLimit | quote }}
+            - name: GBOX_MAX_COMPLEXITY
+              value: {{ .Values.complexity.maxComplexity | quote }}
+            - name: GBOX_MAX_DEPTH
+              value: {{ .Values.complexity.maxDepth | quote }}
+            - name: GBOX_ENABLED_METRICS
+              value: {{ .Values.metrics.enabled | quote }}
+            - name: GBOX_METRICS_PATH
+              value: {{ .Values.metrics.path | quote }}
+          envFrom:
+            - secretRef:
+                name: {{ include "gbox.fullname" . }}
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

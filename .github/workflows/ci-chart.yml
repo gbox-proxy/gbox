@@ -1,0 +1,37 @@
+name: Lint and Test Chart
+
+on: pull_request
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    env:
+      CT_TARGET_BRANCH: main
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - uses: azure/setup-helm@v2
+        with:
+          version: v3.5.0
+
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
+      - uses: helm/chart-testing-action@v2.2.1
+
+      - id: list-changed
+        run: |
+          changed=$(ct list-changed)
+          if [[ -n "$changed" ]]; then
+            echo "::set-output name=changed::true"
+          fi
+
+      - run: ct lint --check-version-increment=false
+
+      - if: steps.list-changed.outputs.changed == 'true'
+        uses: helm/kind-action@v1.2.0
+
+      - run: ct install
