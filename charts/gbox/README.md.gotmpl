@@ -1,0 +1,18 @@
+# GBox Chart for Kubernetes
+
+{{ template "chart.badgesSection" . }}
+
+{{ template "chart.description" . }}
+
+[Learn more about Hasura.](https://hasura.io)
+
+## Installing the Chart
+
+To install the chart with the release name `my-release`, run the following commands:
+
+    helm repo add gbox https://gbox-proxy.github.io/gbox
+    helm install my-release gbox/{{ template "chart.name" . }}
+
+{{ template "chart.requirementsSection" . }}
+
+{{ template "chart.valuesSection" . }}
