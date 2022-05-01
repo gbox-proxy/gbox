@@ -29,6 +29,8 @@ jobs:
             echo "::set-output name=changed::true"
           fi
 
+      - run: helm repo add bitnami https://charts.bitnami.com/bitnami
+
       - run: ct lint --check-version-increment=false
 
       - if: steps.list-changed.outputs.changed == 'true'
