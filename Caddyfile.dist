@@ -29,6 +29,8 @@ log
 route {
     encode gzip
 
+    respond /healthz "OK"
+
     metrics @metrics
 
     basicauth @admin_auth bcrypt {
@@ -65,6 +67,4 @@ route {
         }
         {$GBOX_EXTRA_DIRECTIVES}
     }
-
-    respond /healthz "OK"
 }
