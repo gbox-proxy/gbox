@@ -6,6 +6,7 @@ Fast :zap: reverse proxy in front of any GraphQL server for caching, securing an
 [![Unit Tests](https://github.com/gbox-proxy/gbox/actions/workflows/ci.yml/badge.svg)](https://github.com/gbox-proxy/gbox/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/gbox-proxy/gbox/branch/main/graph/badge.svg?token=U5DIBIY1FG)](https://codecov.io/gh/gbox-proxy/gbox)
 [![Go Report Card](https://goreportcard.com/badge/github.com/gbox-proxy/gbox)](https://goreportcard.com/report/github.com/gbox-proxy/gbox)
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/gbox)](https://artifacthub.io/packages/search?repo=gbox)
 
 Features
 --------
