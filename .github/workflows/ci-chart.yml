@@ -12,7 +12,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: azure/setup-helm@v2
+      - uses: azure/setup-helm@v2.1
         with:
           version: v3.5.0
 
