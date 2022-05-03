@@ -35,10 +35,10 @@ type Handler struct {
 	Upstream string `json:"upstream,omitempty"`
 
 	// Fetch schema interval, disabled by default.
-	FetchSchemaInterval *caddy.Duration `json:"fetch_schema_interval,omitempty"`
+	FetchSchemaInterval caddy.Duration `json:"fetch_schema_interval,omitempty"`
 
 	// Fetch schema request timeout, "30s" by default
-	FetchSchemaTimeout *caddy.Duration `json:"fetch_schema_timeout,omitempty"`
+	FetchSchemaTimeout caddy.Duration `json:"fetch_schema_timeout,omitempty"`
 
 	// Fetch schema headers
 	FetchSchemaHeader http.Header `json:"fetch_schema_headers,omitempty"`
@@ -120,16 +120,15 @@ func (h *Handler) Provision(ctx caddy.Context) (err error) {
 		h.Caching.withMetrics(h)
 	}
 
-	if h.FetchSchemaTimeout == nil {
+	if h.FetchSchemaTimeout == 0 {
 		timeout, _ := caddy.ParseDuration("30s")
-		fetchTimeout := caddy.Duration(timeout)
-		h.FetchSchemaTimeout = &fetchTimeout
+		h.FetchSchemaTimeout = caddy.Duration(timeout)
 	}
 
 	sf := &schemaFetcher{
 		upstream:        h.Upstream,
 		header:          h.FetchSchemaHeader,
-		timeout:         *h.FetchSchemaTimeout,
+		timeout:         h.FetchSchemaTimeout,
 		interval:        h.FetchSchemaInterval,
 		logger:          h.logger,
 		context:         h.ctxBackground,

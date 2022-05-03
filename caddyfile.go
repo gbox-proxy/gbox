@@ -113,8 +113,7 @@ reverse_proxy {
 					return err
 				}
 
-				duration := caddy.Duration(dt)
-				h.FetchSchemaInterval = &duration
+				h.FetchSchemaInterval = caddy.Duration(dt)
 			case "fetch_schema_timeout":
 				if !d.NextArg() {
 					return d.ArgErr()
@@ -127,8 +126,7 @@ reverse_proxy {
 					return err
 				}
 
-				duration := caddy.Duration(dt)
-				h.FetchSchemaTimeout = &duration
+				h.FetchSchemaTimeout = caddy.Duration(dt)
 			case "fetch_schema_header":
 				if !d.NextArg() {
 					return d.ArgErr()
