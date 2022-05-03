@@ -29,7 +29,7 @@ type schemaFetcher struct {
 	// Upstream url
 	upstream string
 	header   http.Header
-	interval *caddy.Duration
+	interval caddy.Duration
 	timeout  caddy.Duration
 
 	caching         *Caching
@@ -53,7 +53,9 @@ func (s *schemaFetcher) Provision(ctx caddy.Context) (err error) {
 		return err
 	}
 
-	if s.interval == nil {
+	if s.interval == 0 {
+		s.logger.Info("fetch schema interval disabled")
+
 		return nil
 	}
 
@@ -63,7 +65,7 @@ func (s *schemaFetcher) Provision(ctx caddy.Context) (err error) {
 }
 
 func (s *schemaFetcher) startInterval() {
-	interval := time.NewTicker(time.Duration(*s.interval))
+	interval := time.NewTicker(time.Duration(s.interval))
 
 	defer interval.Stop()
 

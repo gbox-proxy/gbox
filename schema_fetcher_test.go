@@ -21,7 +21,6 @@ type SchemaFetcherTestSuite struct {
 }
 
 func (s *SchemaFetcherTestSuite) TestInterval() {
-	i := caddy.Duration(time.Millisecond)
 	ctx, cancel := context.WithCancel(context.Background())
 	sh := schemaChangedHandler(func(oldDocument, newDocument *ast.Document, oldSchema, newSchema *graphql.Schema) {
 		s.Require().NotNil(newDocument)
@@ -30,7 +29,7 @@ func (s *SchemaFetcherTestSuite) TestInterval() {
 	})
 	f := &schemaFetcher{
 		upstream:        "http://localhost:9091",
-		interval:        &i,
+		interval:        caddy.Duration(time.Millisecond),
 		onSchemaChanged: sh,
 		context:         ctx,
 		header:          make(http.Header),
