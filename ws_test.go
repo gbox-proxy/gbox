@@ -58,8 +58,17 @@ func (m *testRequestMetrics) addMetricsEndRequest(request *graphql.Request, dura
 }
 
 func TestWsMetricsConn(t *testing.T) {
+	s, _ := graphql.NewSchemaFromString(`
+type Query {
+	users [User!]!
+}
+
+type User {
+	id: ID!
+}
+`)
 	m := newTestRequestMetrics(t)
-	w := newWebsocketMetricsResponseWriter(&testWsResponseWriter{}, m)
+	w := newWebsocketMetricsResponseWriter(&testWsResponseWriter{}, s, m)
 	conn, _, _ := w.Hijack()
 	buff := new(bytes.Buffer)
 	wsutil.WriteClientText(buff, []byte(`{"type": "start", "payload":{"query": "subscription { users { id } }"}}`))
@@ -76,6 +85,15 @@ func TestWsMetricsConn(t *testing.T) {
 }
 
 func TestWsMetricsConnBadCases(t *testing.T) {
+	s, _ := graphql.NewSchemaFromString(`
+type Query {
+	users [User!]!
+}
+
+type User {
+	id: ID!
+}
+`)
 	testCases := map[string]struct {
 		message string
 	}{
@@ -93,7 +111,7 @@ func TestWsMetricsConnBadCases(t *testing.T) {
 
 	for name, testCase := range testCases {
 		m := newTestRequestMetrics(t)
-		w := newWebsocketMetricsResponseWriter(&testWsResponseWriter{}, m)
+		w := newWebsocketMetricsResponseWriter(&testWsResponseWriter{}, s, m)
 		conn, _, _ := w.Hijack()
 		buff := new(bytes.Buffer)
 

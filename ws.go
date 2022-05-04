@@ -16,14 +16,16 @@ import (
 type wsMetricsResponseWriter struct {
 	requestMetrics
 	*caddyhttp.ResponseWriterWrapper
+	schema *graphql.Schema
 }
 
-func newWebsocketMetricsResponseWriter(w http.ResponseWriter, rm requestMetrics) *wsMetricsResponseWriter {
+func newWebsocketMetricsResponseWriter(w http.ResponseWriter, s *graphql.Schema, rm requestMetrics) *wsMetricsResponseWriter {
 	return &wsMetricsResponseWriter{
-		requestMetrics: rm,
 		ResponseWriterWrapper: &caddyhttp.ResponseWriterWrapper{
 			ResponseWriter: w,
 		},
+		schema:         s,
+		requestMetrics: rm,
 	}
 }
 
@@ -35,6 +37,7 @@ func (r *wsMetricsResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) 
 		c = &wsMetricsConn{
 			Conn:           c,
 			requestMetrics: r.requestMetrics,
+			schema:         r.schema,
 		}
 	}
 
@@ -45,14 +48,15 @@ type wsMetricsConn struct {
 	net.Conn
 	requestMetrics
 	request     *graphql.Request
+	schema      *graphql.Schema
 	subscribeAt time.Time
 }
 
 func (c *wsMetricsConn) Read(b []byte) (n int, err error) {
 	n, err = c.Conn.Read(b)
 
-	if err != nil {
-		if c.request != nil {
+	if c.request != nil || err != nil {
+		if err != nil {
 			c.addMetricsEndRequest(c.request, time.Since(c.subscribeAt))
 			c.request = nil
 		}
@@ -85,6 +89,10 @@ func (c *wsMetricsConn) Read(b []byte) (n int, err error) {
 		request := new(graphql.Request)
 
 		if e := json.Unmarshal(msg.Payload, request); e != nil {
+			return n, err
+		}
+
+		if e := normalizeGraphqlRequest(c.schema, request); e != nil {
 			return n, err
 		}
 

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/99designs/gqlgen/graphql/handler"
@@ -15,9 +14,7 @@ import (
 	"github.com/gbox-proxy/gbox/admin/generated"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/jensneuse/graphql-go-tools/pkg/astparser"
 	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
-	"github.com/jensneuse/graphql-go-tools/pkg/operationreport"
 	"go.uber.org/zap"
 )
 
@@ -78,7 +75,7 @@ func (h *Handler) GraphQLOverWebsocketHandle(w http.ResponseWriter, r *http.Requ
 	}
 
 	n := r.Context().Value(nextHandlerCtxKey).(caddyhttp.Handler)
-	mr := newWebsocketMetricsResponseWriter(w, h)
+	mr := newWebsocketMetricsResponseWriter(w, h.schema, h)
 	reporter.error = h.ReverseProxy.ServeHTTP(mr, r, n)
 }
 
@@ -153,38 +150,13 @@ func (h *Handler) unmarshalHTTPRequest(r *http.Request) (*graphql.Request, error
 		return nil, err
 	}
 
-	err = graphql.UnmarshalHttpRequest(copyHTTPRequest, gqlRequest)
-
-	if err != nil {
+	if err = graphql.UnmarshalHttpRequest(copyHTTPRequest, gqlRequest); err != nil {
 		return nil, err
 	}
 
-	if result, _ := gqlRequest.Normalize(h.schema); !result.Successful {
-		return nil, result.Errors
+	if err = normalizeGraphqlRequest(h.schema, gqlRequest); err != nil {
+		return nil, err
 	}
-
-	operation, _ := astparser.ParseGraphqlDocumentString(gqlRequest.Query)
-	numOfOperations := operation.NumOfOperationDefinitions()
-	operationName := strings.TrimSpace(gqlRequest.OperationName)
-	report := &operationreport.Report{}
-
-	if operationName == "" && numOfOperations > 1 {
-		report.AddExternalError(operationreport.ErrRequiredOperationNameIsMissing())
-
-		return nil, report
-	}
-
-	if operationName == "" && numOfOperations == 1 {
-		operationName = operation.OperationDefinitionNameString(0)
-	}
-
-	if !operation.OperationNameExists(operationName) {
-		report.AddExternalError(operationreport.ErrOperationWithProvidedOperationNameNotFound(operationName))
-
-		return nil, report
-	}
-
-	gqlRequest.OperationName = operationName
 
 	return gqlRequest, nil
 }
