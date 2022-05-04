@@ -492,7 +492,7 @@ caching {
 		actualHitTimes := resp.Header.Get("x-cache-hits")
 		actualStatus := resp.Header.Get("x-cache")
 		actualCachingTags := resp.Header.Get("x-debug-result-tags")
-		actualPurgingTags := resp.Header.Get("x-debug-purging-tags")
+		actualPurgingTags := resp.Header.Get("x-debug-purged-tags")
 
 		s.Require().Equalf(testCase.expectedBody, string(respBody), "case %s: unexpected payload", testCase.name)
 		s.Require().Equalf(string(testCase.expectedCachingStatus), actualStatus, "case %s: unexpected status", testCase.name)

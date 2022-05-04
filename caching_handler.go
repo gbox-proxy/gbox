@@ -228,14 +228,12 @@ func (c *Caching) handleMutationRequest(w http.ResponseWriter, r *cachingRequest
 	}
 
 	if c.DebugHeaders {
-		w.Header().Set("x-debug-purging-tags", strings.Join(purgeTags, "; "))
+		w.Header().Set("x-debug-purged-tags", strings.Join(purgeTags, "; "))
 	}
 
-	go func() {
-		if err := c.purgeQueryResultByTags(c.ctxBackground, purgeTags); err != nil {
-			c.logger.Info("fail to purge query result by tags", zap.Error(err))
-		}
-	}()
+	if err = c.purgeQueryResultByTags(c.ctxBackground, purgeTags); err != nil {
+		c.logger.Error("fail to purge query result by tags", zap.Error(err))
+	}
 
 	return err
 }
