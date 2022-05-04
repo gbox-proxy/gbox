@@ -33,3 +33,7 @@ Every single request sent by your clients will serve by GBox. The GBox reverse p
 
 ![Diagram](https://gbox-proxy.github.io/img/diagram.png)
 
+Documentation
+-------------
+
+The GBox documentation can be browsed on [Github page](https://gbox-proxy.github.io/).
