@@ -37,3 +37,14 @@ Documentation
 -------------
 
 The GBox documentation can be browsed on [Github page](https://gbox-proxy.github.io/).
+
+Inspiration
+-----------
+
+The GBox has been inspired by many others related work including:
+
++ [Mercure](https://github.com/dunglas/mercure)
++ [graphql-go-tools](https://github.com/jensneuse/graphql-go-tools)
++ [GraphCDN](https://graphcdn.io)
+
+Thanks to all the great people who created these projects!
