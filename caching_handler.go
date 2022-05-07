@@ -140,20 +140,14 @@ func (c *Caching) addCachingResponseHeaders(s CachingStatus, r *cachingQueryResu
 		return
 	}
 
-	uniqueVaries := make(map[string]struct{})
-
-	for name := range p.VaryNames {
-		for v := range c.Varies[name].Headers {
-			uniqueVaries[v] = struct{}{}
+	for _, name := range p.VaryNames {
+		for _, v := range c.Varies[name].Headers {
+			h.Add("vary", v)
 		}
 
-		for v := range c.Varies[name].Cookies {
-			uniqueVaries[fmt.Sprintf("cookie:%s", v)] = struct{}{}
+		for _, v := range c.Varies[name].Cookies {
+			h.Add("vary", fmt.Sprintf("cookie:%s", v))
 		}
-	}
-
-	for vary := range uniqueVaries {
-		h.Add("vary", vary)
 	}
 
 	if s == CachingStatusHit {

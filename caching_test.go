@@ -51,9 +51,7 @@ func TestCaching_Validate(t *testing.T) {
 				Rules: CachingRules{
 					"default": &CachingRule{
 						MaxAge: 1,
-						Varies: map[string]struct{}{
-							"test": {},
-						},
+						Varies: []string{"test"},
 					},
 				},
 			},
@@ -72,9 +70,7 @@ func TestCaching_Validate(t *testing.T) {
 				Rules: CachingRules{
 					"default": &CachingRule{
 						MaxAge: 1,
-						Varies: map[string]struct{}{
-							"test": {},
-						},
+						Varies: []string{"test"},
 					},
 				},
 			},

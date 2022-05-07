@@ -129,17 +129,7 @@ func (c *Caching) unmarshalCaddyfileRules(d *caddyfile.Dispenser) error {
 						return d.ArgErr()
 					}
 
-					varies := make(map[string]struct{})
-
-					for _, arg := range args {
-						if _, exists := varies[arg]; exists {
-							return d.Errf("duplicate vary: %s", arg)
-						}
-
-						varies[arg] = struct{}{}
-					}
-
-					rule.Varies = varies
+					rule.Varies = args
 				default:
 					return d.Errf("unrecognized subdirective %s", d.Val())
 				}
@@ -188,8 +178,8 @@ func (c *Caching) unmarshalCaddyfileVaries(d *caddyfile.Dispenser) error {
 		for d.NextBlock(0) {
 			name := d.Val()
 			vary := &CachingVary{
-				Headers: make(map[string]struct{}),
-				Cookies: make(map[string]struct{}),
+				Headers: []string{},
+				Cookies: []string{},
 			}
 
 			for subNesting := d.Nesting(); d.NextBlock(subNesting); {
@@ -201,13 +191,7 @@ func (c *Caching) unmarshalCaddyfileVaries(d *caddyfile.Dispenser) error {
 						return d.ArgErr()
 					}
 
-					for _, arg := range args {
-						if _, exists := vary.Headers[arg]; exists {
-							return d.Errf("duplicate header: %s", arg)
-						}
-
-						vary.Headers[arg] = struct{}{}
-					}
+					vary.Headers = args
 				case "cookies":
 					args := d.RemainingArgs()
 
@@ -215,13 +199,7 @@ func (c *Caching) unmarshalCaddyfileVaries(d *caddyfile.Dispenser) error {
 						return d.ArgErr()
 					}
 
-					for _, arg := range args {
-						if _, exists := vary.Cookies[arg]; exists {
-							return d.Errf("duplicate cookie: %s", arg)
-						}
-
-						vary.Cookies[arg] = struct{}{}
-					}
+					vary.Cookies = args
 				default:
 					return d.Errf("unrecognized subdirective %s", d.Val())
 				}

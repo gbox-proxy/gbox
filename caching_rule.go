@@ -23,7 +23,7 @@ type CachingRule struct {
 
 	// Varies name apply to query results that match the rule types.
 	// If not set query results will cache public.
-	Varies map[string]struct{} `json:"varies,omitempty"`
+	Varies []string `json:"varies,omitempty"`
 }
 
 type CachingRules map[string]*CachingRule

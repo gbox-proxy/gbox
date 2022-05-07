@@ -15,9 +15,7 @@ func TestCachingVariesHash(t *testing.T) {
 
 	varies = CachingVaries{
 		"default": &CachingVary{
-			Cookies: map[string]struct{}{
-				"session": {},
-			},
+			Cookies: []string{"session"},
 		},
 	}
 
