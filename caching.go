@@ -117,7 +117,7 @@ func (c *Caching) Provision(ctx caddy.Context) error {
 
 func (c *Caching) Validate() error {
 	for ruleName, rule := range c.Rules {
-		for vary := range rule.Varies {
+		for _, vary := range rule.Varies {
 			if _, ok := c.Varies[vary]; !ok {
 				return fmt.Errorf("caching rule %s, configured vary: %s does not exist", ruleName, vary)
 			}

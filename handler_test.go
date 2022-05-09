@@ -745,6 +745,73 @@ caching {
 	}
 }
 
+func (s *HandlerIntegrationTestSuite) TestCombinedCachingVaries() {
+	const payload = `{"query": "query { users { name } }"}`
+	const config = `
+caching {
+	rules {
+		test {
+			max_age 60ms
+			swr 60ms
+			varies first second
+		}
+	}
+	varies {
+		first {
+			headers x-first-header-1 x-first-header-2
+			cookies x-first-cookie-1 x-first-cookie-2
+		}
+		second {
+			headers x-second-header-1 x-second-header-2
+			cookies x-second-cookie-1 x-second-cookie-2
+		}
+	}
+}
+`
+	tester := caddytest.NewTester(s.T())
+	tester.InitServer(pureCaddyfile, "caddyfile")
+	tester.InitServer(fmt.Sprintf(caddyfilePattern, config), "caddyfile")
+
+	// test cache hit for 20 times
+	for i := 0; i <= 20; i++ {
+		expectedCachingStatus := CachingStatusHit
+		expectedHitTimes := strconv.Itoa(i)
+		expectedBody := `{"data":{"users":[{"name":"A"},{"name":"B"},{"name":"C"}]}}`
+		if i == 0 {
+			expectedCachingStatus = CachingStatusMiss
+			expectedHitTimes = ""
+		}
+
+		r, _ := http.NewRequest(
+			"POST",
+			"http://localhost:9090/graphql",
+			strings.NewReader(payload),
+		)
+		r.Header.Add("content-type", "application/json")
+
+		r.Header.Set("x-first-header-1", "x-first-header-1")
+		r.Header.Set("x-first-header-2", "x-first-header-2")
+		r.Header.Set("x-second-header-1", "x-second-header-1")
+		r.Header.Set("x-second-header-2", "x-second-header-2")
+
+		r.AddCookie(&http.Cookie{Name: "x-first-cookie-1", Value: "x-first-cookie-1"})
+		r.AddCookie(&http.Cookie{Name: "x-first-cookie-2", Value: "x-first-cookie-2"})
+		r.AddCookie(&http.Cookie{Name: "x-second-cookie-1", Value: "x-second-cookie-1"})
+		r.AddCookie(&http.Cookie{Name: "x-second-cookie-2", Value: "x-second-cookie-2"})
+
+		resp := tester.AssertResponseCode(r, http.StatusOK)
+		respBody, _ := io.ReadAll(resp.Body)
+		actualStatus := resp.Header.Get("x-cache")
+		actualHitTimes := resp.Header.Get("x-cache-hits")
+
+		s.Require().Equalf(expectedBody, string(respBody), "unexpected payload")
+		s.Require().Equalf(string(expectedCachingStatus), actualStatus, "unexpected status")
+		s.Require().Equalf(expectedHitTimes, actualHitTimes, "unexpected hit times")
+
+		resp.Body.Close()
+	}
+}
+
 func (s *HandlerIntegrationTestSuite) TestEnabledPlaygrounds() {
 	tester := caddytest.NewTester(s.T())
 	tester.InitServer(pureCaddyfile, "caddyfile")

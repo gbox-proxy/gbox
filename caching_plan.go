@@ -24,7 +24,7 @@ var (
 type cachingPlan struct {
 	MaxAge      caddy.Duration
 	Swr         caddy.Duration
-	VaryNames   map[string]struct{}
+	VaryNames   []string
 	Types       map[string]struct{}
 	RulesHash   uint64
 	VariesHash  uint64
@@ -158,7 +158,7 @@ func (p *cachingPlanner) savePlan(plan *cachingPlan) error {
 
 func (p *cachingPlanner) computePlan() (*cachingPlan, error) {
 	types := make(map[string]struct{})
-	varyNames := make(map[string]struct{})
+	var varyNames []string
 	plan := &cachingPlan{
 		Passthrough: true,
 	}
@@ -191,9 +191,7 @@ func (p *cachingPlanner) computePlan() (*cachingPlan, error) {
 			plan.Swr = rule.Swr
 		}
 
-		for vary := range rule.Varies {
-			varyNames[vary] = struct{}{}
-		}
+		varyNames = append(varyNames, rule.Varies...)
 
 		if rule.Types == nil {
 			types = nil
@@ -242,14 +240,14 @@ func (p *cachingPlanner) calcQueryResultCacheKey(plan *cachingPlan) (string, err
 
 	r := p.request.httpRequest
 
-	for name := range plan.VaryNames {
+	for _, name := range plan.VaryNames {
 		vary, ok := p.caching.Varies[name]
 
 		if !ok {
 			return "", fmt.Errorf("setting of vary %s does not exist in varies list given", vary)
 		}
 
-		for name := range vary.Headers {
+		for _, name := range vary.Headers {
 			buffString := fmt.Sprintf("header:%s=%s;", name, r.Header.Get(name))
 
 			if _, err := hash.Write([]byte(buffString)); err != nil {
@@ -257,7 +255,7 @@ func (p *cachingPlanner) calcQueryResultCacheKey(plan *cachingPlan) (string, err
 			}
 		}
 
-		for name := range vary.Cookies {
+		for _, name := range vary.Cookies {
 			var value string
 			cookie, err := r.Cookie(name)
 

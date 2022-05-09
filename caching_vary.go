@@ -9,10 +9,10 @@ import (
 // CachingVary using to compute query result cache key by http request cookies and headers.
 type CachingVary struct {
 	// Headers names for identifier query result cache key.
-	Headers map[string]struct{} `json:"headers,omitempty"`
+	Headers []string `json:"headers,omitempty"`
 
 	// Cookies names for identifier query result cache key.
-	Cookies map[string]struct{} `json:"cookies,omitempty"`
+	Cookies []string `json:"cookies,omitempty"`
 }
 
 type CachingVaries map[string]*CachingVary
