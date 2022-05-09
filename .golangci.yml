@@ -32,6 +32,9 @@ linters:
     - wrapcheck
     - goerr113
     - gochecknoglobals
+    - execinquery
+    - exhaustruct
+    - nonamedreturns
 
     # deprecated
     - interfacer
