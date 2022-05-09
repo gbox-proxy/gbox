@@ -56,11 +56,6 @@ type Metrics struct {
 	cachingCount      *prometheus.CounterVec
 }
 
-type requestMetrics interface {
-	addMetricsBeginRequest(*graphql.Request)
-	addMetricsEndRequest(*graphql.Request, time.Duration)
-}
-
 type cachingMetrics interface {
 	addMetricsCaching(*graphql.Request, CachingStatus)
 }
