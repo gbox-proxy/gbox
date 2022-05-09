@@ -77,8 +77,8 @@ func (h *Handler) GraphQLOverWebsocketHandle(w http.ResponseWriter, r *http.Requ
 	}
 
 	n := r.Context().Value(nextHandlerCtxKey).(caddyhttp.Handler)
-	mr := newWebsocketResponseWriter(w, h)
-	reporter.error = h.ReverseProxy.ServeHTTP(mr, r, n)
+	wsr := newWebsocketResponseWriter(w, h)
+	reporter.error = h.ReverseProxy.ServeHTTP(wsr, r, n)
 }
 
 // GraphQLHandle ensure GraphQL request is safe before forwarding to upstream and caching query result of it.
