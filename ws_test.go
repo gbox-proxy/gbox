@@ -3,6 +3,7 @@ package gbox
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"errors"
 	"net"
 	"net/http"
@@ -18,12 +19,13 @@ type testWsSubscriber struct {
 	t *testing.T
 	r *graphql.Request
 	d time.Duration
+	e error
 }
 
 func (t *testWsSubscriber) onWsSubscribe(request *graphql.Request) error {
 	t.r = request
 
-	return nil
+	return t.e
 }
 
 func (t *testWsSubscriber) onWsClose(request *graphql.Request, duration time.Duration) {
@@ -33,10 +35,12 @@ func (t *testWsSubscriber) onWsClose(request *graphql.Request, duration time.Dur
 
 type testWsResponseWriter struct {
 	http.ResponseWriter
+	wsConnBuff *bytes.Buffer
 }
 
 type testWsConn struct {
 	net.Conn
+	buffer *bytes.Buffer
 }
 
 func (c *testWsConn) Read(b []byte) (n int, err error) {
@@ -47,21 +51,28 @@ func (c *testWsConn) Read(b []byte) (n int, err error) {
 	return len(b), nil
 }
 
-func (t testWsResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
-	return &testWsConn{}, nil, nil
+func (c *testWsConn) Write(b []byte) (n int, err error) {
+	return c.buffer.Write(b)
 }
 
-func newTestWsSubscriber(t *testing.T) *testWsSubscriber {
+func (t *testWsResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	return &testWsConn{
+		buffer: t.wsConnBuff,
+	}, nil, nil
+}
+
+func newTestWsSubscriber(t *testing.T, err error) *testWsSubscriber {
 	t.Helper()
 
 	return &testWsSubscriber{
 		t: t,
+		e: err,
 	}
 }
 
 func TestWsMetricsConn(t *testing.T) {
-	s := newTestWsSubscriber(t)
-	w := newWebsocketResponseWriter(&testWsResponseWriter{}, s)
+	s := newTestWsSubscriber(t, nil)
+	w := newWebsocketResponseWriter(&testWsResponseWriter{wsConnBuff: new(bytes.Buffer)}, s)
 	conn, _, _ := w.Hijack()
 	buff := new(bytes.Buffer)
 	wsutil.WriteClientText(buff, []byte(`{"type": "start", "payload":{"query": "subscription { users { id } }"}}`))
@@ -80,6 +91,7 @@ func TestWsMetricsConn(t *testing.T) {
 func TestWsMetricsConnBadCases(t *testing.T) {
 	testCases := map[string]struct {
 		message string
+		err     error
 	}{
 		"invalid_json": {
 			message: `invalid`,
@@ -91,11 +103,16 @@ func TestWsMetricsConnBadCases(t *testing.T) {
 			message: `{"type": "start", "payload": "invalid"}`,
 		},
 		"invalid_ws_message": {},
+		"invalid_query": {
+			message: `{"type": "start", "payload": {"query": "query { user { id } }"}}`,
+			err:     errors.New("test"),
+		},
 	}
 
 	for name, testCase := range testCases {
-		s := newTestWsSubscriber(t)
-		w := newWebsocketResponseWriter(&testWsResponseWriter{}, s)
+		wsConnBuff := new(bytes.Buffer)
+		s := newTestWsSubscriber(t, testCase.err)
+		w := newWebsocketResponseWriter(&testWsResponseWriter{wsConnBuff: wsConnBuff}, s)
 		conn, _, _ := w.Hijack()
 		buff := new(bytes.Buffer)
 
@@ -107,9 +124,25 @@ func TestWsMetricsConnBadCases(t *testing.T) {
 
 		n, err := conn.Read(buff.Bytes())
 
-		require.NoErrorf(t, err, "case %s: should not error", name)
+		require.Equalf(t, err, s.e, "case %s: unexpected error", name)
 		require.Greaterf(t, n, 0, "case %s: read bytes should greater than 0", name)
-		require.Nilf(t, s.r, "case %s: request should be nil", name)
-		require.Equal(t, s.d, time.Duration(0), "case %s: duration should be 0", name)
+		require.Equalf(t, s.d, time.Duration(0), "case %s: duration should be 0", name)
+
+		if s.e == nil {
+			require.Nilf(t, s.r, "case %s: request should be nil", name)
+		} else {
+			require.NotNilf(t, s.r, "case %s: request should not be nil", name)
+			data, _ := wsutil.ReadServerText(wsConnBuff)
+			msg := &wsMessage{}
+			json.Unmarshal(data, msg)
+
+			require.Equalf(t, "error", msg.Type, "case %s: unexpected error type", name)
+
+			data, _ = wsutil.ReadServerText(wsConnBuff)
+			msg = &wsMessage{}
+			json.Unmarshal(data, msg)
+
+			require.Equalf(t, "complete", msg.Type, "case %s: msg type should be complete, but got %s", name, msg.Type)
+		}
 	}
 }

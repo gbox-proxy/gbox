@@ -18,23 +18,13 @@ type wsSubscriber interface {
 	onWsClose(*graphql.Request, time.Duration)
 }
 
-func (h *Handler) onWsSubscribe(r *graphql.Request) error {
-	if err := normalizeGraphqlRequest(h.schema, r); err != nil {
+func (h *Handler) onWsSubscribe(r *graphql.Request) (err error) {
+	if err = normalizeGraphqlRequest(h.schema, r); err != nil {
 		return err
 	}
 
-	isIntrospection, _ := r.IsIntrospectionQuery()
-
-	if isIntrospection && h.DisabledIntrospection {
-		return ErrNotAllowIntrospectionQuery
-	}
-
-	if h.Complexity != nil {
-		requestErrors := h.Complexity.validateRequest(h.schema, r)
-
-		if requestErrors.Count() > 0 {
-			return requestErrors
-		}
+	if err = h.validateGraphqlRequest(r); err != nil {
+		return err
 	}
 
 	h.addMetricsBeginRequest(r)
@@ -82,7 +72,7 @@ type wsConn struct {
 }
 
 type wsMessage struct {
-	ID      string          `json:"id"`
+	ID      interface{}     `json:"id"`
 	Type    string          `json:"type"`
 	Payload json.RawMessage `json:"payload,omitempty"`
 }
@@ -125,21 +115,8 @@ func (c *wsConn) Read(b []byte) (n int, err error) {
 		}
 
 		if err = c.onWsSubscribe(request); err != nil {
-			msg = &wsMessage{
-				ID:   msg.ID,
-				Type: "error",
-			}
-			rawMsgPayload, _ := json.Marshal(graphql.RequestErrorsFromError(err)) //nolint:errchkjson
-			msg.Payload = json.RawMessage(rawMsgPayload)
-			payload, _ := json.Marshal(msg) //nolint:errchkjson
-			wsutil.WriteServerText(c, payload)
-
-			msg = &wsMessage{
-				ID:   msg.ID,
-				Type: "complete",
-			}
-			payload, _ = json.Marshal(msg) //nolint:errchkjson
-			wsutil.WriteServerText(c, payload)
+			c.writeErrorMessage(msg.ID, err)
+			c.writeCompleteMessage(msg.ID)
 
 			return n, err
 		}
@@ -149,4 +126,38 @@ func (c *wsConn) Read(b []byte) (n int, err error) {
 	}
 
 	return n, err
+}
+
+func (c *wsConn) writeErrorMessage(id interface{}, errMsg error) error {
+	errMsgRaw, errMsgErr := json.Marshal(graphql.RequestErrorsFromError(errMsg))
+
+	if errMsgErr != nil {
+		return errMsgErr
+	}
+
+	msg := &wsMessage{
+		ID:      id,
+		Type:    "error",
+		Payload: json.RawMessage(errMsgRaw),
+	}
+
+	payload, err := json.Marshal(msg)
+	if err != nil {
+		return err
+	}
+
+	return wsutil.WriteServerText(c, payload)
+}
+
+func (c *wsConn) writeCompleteMessage(id interface{}) error {
+	msg := &wsMessage{
+		ID:   id,
+		Type: "complete",
+	}
+	payload, err := json.Marshal(msg)
+	if err != nil {
+		return err
+	}
+
+	return wsutil.WriteServerText(c, payload)
 }

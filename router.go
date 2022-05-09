@@ -25,7 +25,7 @@ const (
 	graphQLPath         = "/graphql"
 )
 
-var ErrNotAllowIntrospectionQuery = errors.New("introspection queries are not allow")
+var ErrNotAllowIntrospectionQuery = errors.New("introspection query is not allowed")
 
 func (h *Handler) initRouter() {
 	router := mux.NewRouter()
@@ -93,34 +93,21 @@ func (h *Handler) GraphQLHandle(w http.ResponseWriter, r *http.Request) {
 
 	gqlRequest, err := h.unmarshalHTTPRequest(r)
 	if err != nil {
-		h.logger.Debug("unmarshal GQL cachingRequest from http cachingRequest failure", zap.Error(err))
+		h.logger.Debug("can not unmarshal graphql request from http request", zap.Error(err))
 		reporter.error = writeResponseErrors(err, w)
 
 		return
 	}
 
-	isIntrospectQuery, _ := gqlRequest.IsIntrospectionQuery()
-	start := time.Now()
-
 	h.addMetricsBeginRequest(gqlRequest)
-	defer func() {
-		h.addMetricsEndRequest(gqlRequest, time.Since(start))
-	}()
+	defer func(startedAt time.Time) {
+		h.addMetricsEndRequest(gqlRequest, time.Since(startedAt))
+	}(time.Now())
 
-	if isIntrospectQuery && h.DisabledIntrospection {
-		reporter.error = writeResponseErrors(ErrNotAllowIntrospectionQuery, w)
+	if err = h.validateGraphqlRequest(gqlRequest); err != nil {
+		reporter.error = writeResponseErrors(err, w)
 
 		return
-	}
-
-	if h.Complexity != nil {
-		requestErrors := h.Complexity.validateRequest(h.schema, gqlRequest)
-
-		if requestErrors.Count() > 0 {
-			reporter.error = writeResponseErrors(requestErrors, w)
-
-			return
-		}
 	}
 
 	n := r.Context().Value(nextHandlerCtxKey).(caddyhttp.Handler)
@@ -161,6 +148,24 @@ func (h *Handler) unmarshalHTTPRequest(r *http.Request) (*graphql.Request, error
 	}
 
 	return gqlRequest, nil
+}
+
+func (h *Handler) validateGraphqlRequest(r *graphql.Request) error {
+	isIntrospectQuery, _ := r.IsIntrospectionQuery()
+
+	if isIntrospectQuery && h.DisabledIntrospection {
+		return ErrNotAllowIntrospectionQuery
+	}
+
+	if h.Complexity != nil {
+		requestErrors := h.Complexity.validateRequest(h.schema, r)
+
+		if requestErrors.Count() > 0 {
+			return requestErrors
+		}
+	}
+
+	return nil
 }
 
 // AdminGraphQLHandle purging query result cached and describe cache key.
