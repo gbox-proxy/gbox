@@ -14,10 +14,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type testRequestMetrics struct {
+type testWsSubscriber struct {
 	t *testing.T
 	r *graphql.Request
 	d time.Duration
+}
+
+func (t *testWsSubscriber) onWsSubscribe(request *graphql.Request) error {
+	t.r = request
+
+	return nil
+}
+
+func (t *testWsSubscriber) onWsClose(request *graphql.Request, duration time.Duration) {
+	require.Equal(t.t, t.r, request)
+	t.d = duration
 }
 
 type testWsResponseWriter struct {
@@ -40,35 +51,17 @@ func (t testWsResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	return &testWsConn{}, nil, nil
 }
 
-func newTestRequestMetrics(t *testing.T) *testRequestMetrics {
+func newTestWsSubscriber(t *testing.T) *testWsSubscriber {
 	t.Helper()
 
-	return &testRequestMetrics{
+	return &testWsSubscriber{
 		t: t,
 	}
 }
 
-func (m *testRequestMetrics) addMetricsBeginRequest(request *graphql.Request) {
-	m.r = request
-}
-
-func (m *testRequestMetrics) addMetricsEndRequest(request *graphql.Request, duration time.Duration) {
-	require.Equal(m.t, m.r, request)
-	m.d = duration
-}
-
 func TestWsMetricsConn(t *testing.T) {
-	s, _ := graphql.NewSchemaFromString(`
-type Query {
-	users [User!]!
-}
-
-type User {
-	id: ID!
-}
-`)
-	m := newTestRequestMetrics(t)
-	w := newWebsocketMetricsResponseWriter(&testWsResponseWriter{}, s, m)
+	s := newTestWsSubscriber(t)
+	w := newWebsocketResponseWriter(&testWsResponseWriter{}, s)
 	conn, _, _ := w.Hijack()
 	buff := new(bytes.Buffer)
 	wsutil.WriteClientText(buff, []byte(`{"type": "start", "payload":{"query": "subscription { users { id } }"}}`))
@@ -77,23 +70,14 @@ type User {
 
 	require.NoError(t, err)
 	require.Greater(t, n, 0)
-	require.NotNil(t, m.r)
-	require.Equal(t, m.d, time.Duration(0))
+	require.NotNil(t, s.r)
+	require.Equal(t, s.d, time.Duration(0))
 
 	conn.Read(nil) // end
-	require.Greater(t, m.d, time.Duration(0))
+	require.Greater(t, s.d, time.Duration(0))
 }
 
 func TestWsMetricsConnBadCases(t *testing.T) {
-	s, _ := graphql.NewSchemaFromString(`
-type Query {
-	users [User!]!
-}
-
-type User {
-	id: ID!
-}
-`)
 	testCases := map[string]struct {
 		message string
 	}{
@@ -110,8 +94,8 @@ type User {
 	}
 
 	for name, testCase := range testCases {
-		m := newTestRequestMetrics(t)
-		w := newWebsocketMetricsResponseWriter(&testWsResponseWriter{}, s, m)
+		s := newTestWsSubscriber(t)
+		w := newWebsocketResponseWriter(&testWsResponseWriter{}, s)
 		conn, _, _ := w.Hijack()
 		buff := new(bytes.Buffer)
 
@@ -125,7 +109,7 @@ type User {
 
 		require.NoErrorf(t, err, "case %s: should not error", name)
 		require.Greaterf(t, n, 0, "case %s: read bytes should greater than 0", name)
-		require.Nilf(t, m.r, "case %s: request should be nil", name)
-		require.Equal(t, m.d, time.Duration(0), "case %s: duration should be 0", name)
+		require.Nilf(t, s.r, "case %s: request should be nil", name)
+		require.Equal(t, s.d, time.Duration(0), "case %s: duration should be 0", name)
 	}
 }

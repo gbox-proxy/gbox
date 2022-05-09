@@ -13,54 +13,89 @@ import (
 	"github.com/jensneuse/graphql-go-tools/pkg/graphql"
 )
 
-type wsMetricsResponseWriter struct {
-	requestMetrics
-	*caddyhttp.ResponseWriterWrapper
-	schema *graphql.Schema
+type wsSubscriber interface {
+	onWsSubscribe(*graphql.Request) error
+	onWsClose(*graphql.Request, time.Duration)
 }
 
-func newWebsocketMetricsResponseWriter(w http.ResponseWriter, s *graphql.Schema, rm requestMetrics) *wsMetricsResponseWriter {
-	return &wsMetricsResponseWriter{
+func (h *Handler) onWsSubscribe(r *graphql.Request) error {
+	if err := normalizeGraphqlRequest(h.schema, r); err != nil {
+		return err
+	}
+
+	isIntrospection, _ := r.IsIntrospectionQuery()
+
+	if isIntrospection && h.DisabledIntrospection {
+		return ErrNotAllowIntrospectionQuery
+	}
+
+	if h.Complexity != nil {
+		requestErrors := h.Complexity.validateRequest(h.schema, r)
+
+		if requestErrors.Count() > 0 {
+			return requestErrors
+		}
+	}
+
+	h.addMetricsBeginRequest(r)
+
+	return nil
+}
+
+func (h *Handler) onWsClose(r *graphql.Request, d time.Duration) {
+	h.addMetricsEndRequest(r, d)
+}
+
+type wsResponseWriter struct {
+	*caddyhttp.ResponseWriterWrapper
+	subscriber wsSubscriber
+}
+
+func newWebsocketResponseWriter(w http.ResponseWriter, s wsSubscriber) *wsResponseWriter {
+	return &wsResponseWriter{
 		ResponseWriterWrapper: &caddyhttp.ResponseWriterWrapper{
 			ResponseWriter: w,
 		},
-		schema:         s,
-		requestMetrics: rm,
+		subscriber: s,
 	}
 }
 
-// Hijack connection for collecting subscription metrics.
-func (r *wsMetricsResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+// Hijack connection for validating, and collecting metrics.
+func (r *wsResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	c, w, e := r.ResponseWriterWrapper.Hijack()
 
 	if c != nil {
-		c = &wsMetricsConn{
-			Conn:           c,
-			requestMetrics: r.requestMetrics,
-			schema:         r.schema,
+		c = &wsConn{
+			Conn:         c,
+			wsSubscriber: r.subscriber,
 		}
 	}
 
 	return c, w, e
 }
 
-type wsMetricsConn struct {
+type wsConn struct {
 	net.Conn
-	requestMetrics
+	wsSubscriber
 	request     *graphql.Request
-	schema      *graphql.Schema
 	subscribeAt time.Time
 }
 
-func (c *wsMetricsConn) Read(b []byte) (n int, err error) {
+type wsMessage struct {
+	ID      string          `json:"id"`
+	Type    string          `json:"type"`
+	Payload json.RawMessage `json:"payload,omitempty"`
+}
+
+func (c *wsConn) Read(b []byte) (n int, err error) {
 	n, err = c.Conn.Read(b)
 
-	if c.request != nil || err != nil {
-		if err != nil {
-			c.addMetricsEndRequest(c.request, time.Since(c.subscribeAt))
-			c.request = nil
-		}
+	if c.request != nil && err != nil {
+		c.onWsClose(c.request, time.Since(c.subscribeAt))
+		c.request = nil
+	}
 
+	if c.request != nil || err != nil {
 		return n, err
 	}
 
@@ -76,10 +111,7 @@ func (c *wsMetricsConn) Read(b []byte) (n int, err error) {
 	}
 
 	decoder := json.NewDecoder(r)
-	msg := &struct {
-		Type    string          `json:"type"`
-		Payload json.RawMessage `json:"payload"`
-	}{}
+	msg := &wsMessage{}
 
 	if e := decoder.Decode(msg); e != nil {
 		return n, err
@@ -92,13 +124,28 @@ func (c *wsMetricsConn) Read(b []byte) (n int, err error) {
 			return n, err
 		}
 
-		if e := normalizeGraphqlRequest(c.schema, request); e != nil {
+		if err = c.onWsSubscribe(request); err != nil {
+			msg = &wsMessage{
+				ID:   msg.ID,
+				Type: "error",
+			}
+			rawMsgPayload, _ := json.Marshal(graphql.RequestErrorsFromError(err)) //nolint:errchkjson
+			msg.Payload = json.RawMessage(rawMsgPayload)
+			payload, _ := json.Marshal(msg) //nolint:errchkjson
+			wsutil.WriteServerText(c, payload)
+
+			msg = &wsMessage{
+				ID:   msg.ID,
+				Type: "complete",
+			}
+			payload, _ = json.Marshal(msg) //nolint:errchkjson
+			wsutil.WriteServerText(c, payload)
+
 			return n, err
 		}
 
 		c.request = request
 		c.subscribeAt = time.Now()
-		c.addMetricsBeginRequest(request)
 	}
 
 	return n, err

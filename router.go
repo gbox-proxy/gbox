@@ -25,6 +25,8 @@ const (
 	graphQLPath         = "/graphql"
 )
 
+var ErrNotAllowIntrospectionQuery = errors.New("introspection queries are not allow")
+
 func (h *Handler) initRouter() {
 	router := mux.NewRouter()
 	router.Path(graphQLPath).HeadersRegexp(
@@ -75,7 +77,7 @@ func (h *Handler) GraphQLOverWebsocketHandle(w http.ResponseWriter, r *http.Requ
 	}
 
 	n := r.Context().Value(nextHandlerCtxKey).(caddyhttp.Handler)
-	mr := newWebsocketMetricsResponseWriter(w, h.schema, h)
+	mr := newWebsocketResponseWriter(w, h)
 	reporter.error = h.ReverseProxy.ServeHTTP(mr, r, n)
 }
 
@@ -106,7 +108,7 @@ func (h *Handler) GraphQLHandle(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	if isIntrospectQuery && h.DisabledIntrospection {
-		reporter.error = writeResponseErrors(errors.New("introspection queries are not allowed"), w)
+		reporter.error = writeResponseErrors(ErrNotAllowIntrospectionQuery, w)
 
 		return
 	}
