@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"io"
 	"net"
 	"net/http"
 	"time"
@@ -114,11 +115,11 @@ func (c *wsConn) Read(b []byte) (n int, err error) {
 			return n, err
 		}
 
-		if err = c.onWsSubscribe(request); err != nil {
-			c.writeErrorMessage(msg.ID, err)
+		if e := c.onWsSubscribe(request); e != nil {
+			c.writeErrorMessage(msg.ID, e)
 			c.writeCompleteMessage(msg.ID)
 
-			return n, err
+			return n, io.EOF
 		}
 
 		c.request = request

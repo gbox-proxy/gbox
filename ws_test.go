@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
 	"net"
 	"net/http"
 	"testing"
@@ -124,13 +125,14 @@ func TestWsMetricsConnBadCases(t *testing.T) {
 
 		n, err := conn.Read(buff.Bytes())
 
-		require.Equalf(t, err, s.e, "case %s: unexpected error", name)
 		require.Greaterf(t, n, 0, "case %s: read bytes should greater than 0", name)
 		require.Equalf(t, s.d, time.Duration(0), "case %s: duration should be 0", name)
 
 		if s.e == nil {
 			require.Nilf(t, s.r, "case %s: request should be nil", name)
+			require.Nilf(t, err, "case %s: err should be nil", name)
 		} else {
+			require.Equalf(t, io.EOF, err, "case %s: should be EOF", name)
 			require.NotNilf(t, s.r, "case %s: request should not be nil", name)
 			data, _ := wsutil.ReadServerText(wsConnBuff)
 			msg := &wsMessage{}
