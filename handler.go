@@ -24,6 +24,7 @@ func init() { // nolint:gochecknoinits
 	caddy.RegisterModule(Handler{})
 }
 
+// Handler implements an HTTP handler as a GraphQL reverse proxy server for caching, securing, and monitoring.
 type Handler struct {
 	// Rewrite
 	RewriteRaw json.RawMessage `json:"rewrite_raw,omitempty" caddy:"namespace=http.handlers inline_key=rewrite"`
