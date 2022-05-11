@@ -3,7 +3,9 @@ package gbox
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"errors"
+	"io"
 	"net"
 	"net/http"
 	"testing"
@@ -14,18 +16,32 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type testRequestMetrics struct {
+type testWsSubscriber struct {
 	t *testing.T
 	r *graphql.Request
 	d time.Duration
+	e error
+}
+
+func (t *testWsSubscriber) onWsSubscribe(request *graphql.Request) error {
+	t.r = request
+
+	return t.e
+}
+
+func (t *testWsSubscriber) onWsClose(request *graphql.Request, duration time.Duration) {
+	require.Equal(t.t, t.r, request)
+	t.d = duration
 }
 
 type testWsResponseWriter struct {
 	http.ResponseWriter
+	wsConnBuff *bytes.Buffer
 }
 
 type testWsConn struct {
 	net.Conn
+	buffer *bytes.Buffer
 }
 
 func (c *testWsConn) Read(b []byte) (n int, err error) {
@@ -36,39 +52,28 @@ func (c *testWsConn) Read(b []byte) (n int, err error) {
 	return len(b), nil
 }
 
-func (t testWsResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
-	return &testWsConn{}, nil, nil
+func (c *testWsConn) Write(b []byte) (n int, err error) {
+	return c.buffer.Write(b)
 }
 
-func newTestRequestMetrics(t *testing.T) *testRequestMetrics {
+func (t *testWsResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	return &testWsConn{
+		buffer: t.wsConnBuff,
+	}, nil, nil
+}
+
+func newTestWsSubscriber(t *testing.T, err error) *testWsSubscriber {
 	t.Helper()
 
-	return &testRequestMetrics{
+	return &testWsSubscriber{
 		t: t,
+		e: err,
 	}
 }
 
-func (m *testRequestMetrics) addMetricsBeginRequest(request *graphql.Request) {
-	m.r = request
-}
-
-func (m *testRequestMetrics) addMetricsEndRequest(request *graphql.Request, duration time.Duration) {
-	require.Equal(m.t, m.r, request)
-	m.d = duration
-}
-
 func TestWsMetricsConn(t *testing.T) {
-	s, _ := graphql.NewSchemaFromString(`
-type Query {
-	users [User!]!
-}
-
-type User {
-	id: ID!
-}
-`)
-	m := newTestRequestMetrics(t)
-	w := newWebsocketMetricsResponseWriter(&testWsResponseWriter{}, s, m)
+	s := newTestWsSubscriber(t, nil)
+	w := newWebsocketResponseWriter(&testWsResponseWriter{wsConnBuff: new(bytes.Buffer)}, s)
 	conn, _, _ := w.Hijack()
 	buff := new(bytes.Buffer)
 	wsutil.WriteClientText(buff, []byte(`{"type": "start", "payload":{"query": "subscription { users { id } }"}}`))
@@ -77,25 +82,17 @@ type User {
 
 	require.NoError(t, err)
 	require.Greater(t, n, 0)
-	require.NotNil(t, m.r)
-	require.Equal(t, m.d, time.Duration(0))
+	require.NotNil(t, s.r)
+	require.Equal(t, s.d, time.Duration(0))
 
 	conn.Read(nil) // end
-	require.Greater(t, m.d, time.Duration(0))
+	require.Greater(t, s.d, time.Duration(0))
 }
 
 func TestWsMetricsConnBadCases(t *testing.T) {
-	s, _ := graphql.NewSchemaFromString(`
-type Query {
-	users [User!]!
-}
-
-type User {
-	id: ID!
-}
-`)
 	testCases := map[string]struct {
 		message string
+		err     error
 	}{
 		"invalid_json": {
 			message: `invalid`,
@@ -107,11 +104,16 @@ type User {
 			message: `{"type": "start", "payload": "invalid"}`,
 		},
 		"invalid_ws_message": {},
+		"invalid_query": {
+			message: `{"type": "start", "payload": {"query": "query { user { id } }"}}`,
+			err:     errors.New("test"),
+		},
 	}
 
 	for name, testCase := range testCases {
-		m := newTestRequestMetrics(t)
-		w := newWebsocketMetricsResponseWriter(&testWsResponseWriter{}, s, m)
+		wsConnBuff := new(bytes.Buffer)
+		s := newTestWsSubscriber(t, testCase.err)
+		w := newWebsocketResponseWriter(&testWsResponseWriter{wsConnBuff: wsConnBuff}, s)
 		conn, _, _ := w.Hijack()
 		buff := new(bytes.Buffer)
 
@@ -123,9 +125,26 @@ type User {
 
 		n, err := conn.Read(buff.Bytes())
 
-		require.NoErrorf(t, err, "case %s: should not error", name)
 		require.Greaterf(t, n, 0, "case %s: read bytes should greater than 0", name)
-		require.Nilf(t, m.r, "case %s: request should be nil", name)
-		require.Equal(t, m.d, time.Duration(0), "case %s: duration should be 0", name)
+		require.Equalf(t, s.d, time.Duration(0), "case %s: duration should be 0", name)
+
+		if s.e == nil {
+			require.Nilf(t, s.r, "case %s: request should be nil", name)
+			require.Nilf(t, err, "case %s: err should be nil", name)
+		} else {
+			require.Equalf(t, io.EOF, err, "case %s: should be EOF", name)
+			require.NotNilf(t, s.r, "case %s: request should not be nil", name)
+			data, _ := wsutil.ReadServerText(wsConnBuff)
+			msg := &wsMessage{}
+			json.Unmarshal(data, msg)
+
+			require.Equalf(t, "error", msg.Type, "case %s: unexpected error type", name)
+
+			data, _ = wsutil.ReadServerText(wsConnBuff)
+			msg = &wsMessage{}
+			json.Unmarshal(data, msg)
+
+			require.Equalf(t, "complete", msg.Type, "case %s: msg type should be complete, but got %s", name, msg.Type)
+		}
 	}
 }

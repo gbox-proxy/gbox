@@ -110,7 +110,7 @@ func (s *HandlerIntegrationTestSuite) TestIntrospection() {
 		"disabled": {
 			extraConfig:  "disabled_introspection true",
 			payload:      `{"query": "query { __schema { queryType { name } } }"}`,
-			expectedBody: `{"errors":[{"message":"introspection queries are not allowed"}]}`,
+			expectedBody: `{"errors":[{"message":"introspection query is not allowed"}]}`,
 		},
 	}
 
