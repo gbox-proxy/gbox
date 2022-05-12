@@ -3,6 +3,27 @@ entries:
   gbox:
   - apiVersion: v2
     appVersion: v1.0.5
+    created: "2022-05-12T07:22:16.964488042Z"
+    dependencies:
+    - condition: redis.enabled
+      name: redis
+      repository: https://charts.bitnami.com/bitnami
+      version: 16.8.9
+    description: GBox Helm chart for Kubernetes. GBox is a reverse proxy in front
+      of any GraphQL server for caching, securing and monitoring.
+    digest: 9090e17b4051e10a1177817a8a57b831cd4a0e3f1cd4b1f4d071c3272fadecda
+    maintainers:
+    - email: vuongxuongminh@gmail.com
+      name: vuongxuongminh
+    name: gbox
+    sources:
+    - https://github.com/gbox-proxy/gbox
+    type: application
+    urls:
+    - https://github.com/gbox-proxy/gbox/releases/download/helm-chart-1.0.4/gbox-1.0.4.tgz
+    version: 1.0.4
+  - apiVersion: v2
+    appVersion: v1.0.5
     created: "2022-05-11T09:02:35.101681498Z"
     dependencies:
     - condition: redis.enabled
@@ -85,4 +106,4 @@ entries:
     urls:
     - https://github.com/gbox-proxy/gbox/releases/download/helm-chart-1.0.0/gbox-1.0.0.tgz
     version: 1.0.0
-generated: "2022-05-11T09:02:35.101728098Z"
+generated: "2022-05-12T07:22:16.964516542Z"
