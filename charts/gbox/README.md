@@ -1,6 +1,6 @@
 # GBox Chart for Kubernetes
 
-![Version: 1.0.3](https://img.shields.io/badge/Version-1.0.3-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.0.5](https://img.shields.io/badge/AppVersion-v1.0.5-informational?style=flat-square)
+![Version: 1.0.4](https://img.shields.io/badge/Version-1.0.4-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.0.5](https://img.shields.io/badge/AppVersion-v1.0.5-informational?style=flat-square)
 
 GBox Helm chart for Kubernetes. GBox is a reverse proxy in front of any GraphQL server for caching, securing and monitoring.
 
@@ -50,15 +50,21 @@ To install the chart with the release name `my-release`, run the following comma
 | ingress.annotations | object | `{}` | Annotations to be added to the ingress. |
 | ingress.className | string | `""` | Ingress [class name](https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-class). |
 | ingress.enabled | bool | `false` | Enable [ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/). |
-| ingress.hosts[0].host | string | `"chart-example.local"` |  |
-| ingress.hosts[0].paths[0].path | string | `"/"` |  |
-| ingress.hosts[0].paths[0].pathType | string | `"ImplementationSpecific"` |  |
+| ingress.hosts | list | See [values.yaml](values.yaml). | Ingress host configuration. |
 | ingress.tls | list | See [values.yaml](values.yaml). | Ingress TLS configuration. |
 | metrics.enabled | bool | `true` | Whether enable Prometheus metric endpoint or not |
 | metrics.path | string | `"/metrics"` | Url path of metric endpoint. |
+| metrics.serviceMonitor.additionalLabels | object | `{}` | Additional labels that can be used so ServiceMonitor resource(s) can be discovered by Prometheus |
+| metrics.serviceMonitor.enabled | bool | `false` | Create ServiceMonitor resource(s) for scraping metrics using PrometheusOperator. When enabled @param metrics.enabled must be set to true |
+| metrics.serviceMonitor.honorLabels | bool | `false` | Specify honorLabels parameter to add the scrape endpoint |
+| metrics.serviceMonitor.interval | string | `"30s"` | The interval at which metrics should be scraped |
+| metrics.serviceMonitor.metricRelabelings | list | `[]` | Metrics RelabelConfigs to apply to samples before ingestion. |
+| metrics.serviceMonitor.namespace | string | `""` | The namespace in which the ServiceMonitor will be created |
+| metrics.serviceMonitor.relabellings | list | `[]` |  |
+| metrics.serviceMonitor.scrapeTimeout | string | `""` | The timeout after which the scrape is ended |
 | nameOverride | string | `""` | A name in place of the chart name for `app:` labels. |
 | nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector) configuration. |
-| podAnnotations | object | `{}` | Annotations to be added to pods. |
+| podAnnotations | object | See [values.yaml](values.yaml). | Annotations to be added to pods. |
 | podSecurityContext | object | `{}` | Pod [security context](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod). See the [API reference](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#security-context) for details. |
 | redis.architecture | string | `"standalone"` | Set Redis architecture standalone or replication. |
 | redis.auth.password | string | `"!ChangeMe!"` |  |
