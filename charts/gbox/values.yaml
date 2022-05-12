@@ -25,7 +25,11 @@ serviceAccount:
   name: ""
 
 # -- Annotations to be added to pods.
-podAnnotations: {}
+# @default -- See [values.yaml](values.yaml).
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "80"
+  prometheus.io/path: "{{ .Values.metrics.path }}"
 
 # -- Pod [security context](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod).
 # See the [API reference](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#security-context) for details.
@@ -195,3 +199,29 @@ metrics:
 
   # -- Url path of metric endpoint.
   path: /metrics
+
+  # Prometheus Service Monitor
+  serviceMonitor:
+    # -- Create ServiceMonitor resource(s) for scraping metrics using PrometheusOperator. When enabled @param metrics.enabled must be set to true
+    enabled: false
+
+    # -- The namespace in which the ServiceMonitor will be created
+    namespace: ""
+
+    # -- The interval at which metrics should be scraped
+    interval: 30s
+
+    # -- The timeout after which the scrape is ended
+    scrapeTimeout: ""
+
+    # -- Metrics RelabelConfigs to apply to samples before scraping.
+    relabellings: []
+
+    # --  Metrics RelabelConfigs to apply to samples before ingestion.
+    metricRelabelings: []
+
+    # -- Specify honorLabels parameter to add the scrape endpoint
+    honorLabels: false
+
+    # -- Additional labels that can be used so ServiceMonitor resource(s) can be discovered by Prometheus
+    additionalLabels: {}
