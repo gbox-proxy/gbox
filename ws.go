@@ -95,27 +95,28 @@ func (c *wsConn) Read(b []byte) (n int, err error) {
 	buff.Reset()
 	buff.Write(b[:n])
 
-	r := wsutil.NewServerSideReader(buff)
-
-	if _, e := r.NextFrame(); e != nil {
-		return n, err
-	}
-
-	decoder := json.NewDecoder(r)
-	msg := &wsMessage{}
-
-	if e := decoder.Decode(msg); e != nil {
-		return n, err
-	}
-
-	if msg.Type == "subscribe" || msg.Type == "start" {
+	for {
+		msg := new(wsMessage)
 		request := new(graphql.Request)
+		data, _, e := wsutil.ReadClientData(buff)
 
-		if e := json.Unmarshal(msg.Payload, request); e != nil {
+		if e != nil {
 			return n, err
 		}
 
-		if e := c.onWsSubscribe(request); e != nil {
+		if e = json.Unmarshal(data, msg); e != nil {
+			continue
+		}
+
+		if msg.Type != "subscribe" && msg.Type != "start" {
+			continue
+		}
+
+		if e = json.Unmarshal(msg.Payload, request); e != nil {
+			continue
+		}
+
+		if e = c.onWsSubscribe(request); e != nil {
 			c.writeErrorMessage(msg.ID, e)
 			c.writeCompleteMessage(msg.ID)
 
@@ -124,9 +125,9 @@ func (c *wsConn) Read(b []byte) (n int, err error) {
 
 		c.request = request
 		c.subscribeAt = time.Now()
-	}
 
-	return n, err
+		return n, err
+	}
 }
 
 func (c *wsConn) writeErrorMessage(id interface{}, errMsg error) error {

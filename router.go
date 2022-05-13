@@ -99,16 +99,16 @@ func (h *Handler) GraphQLHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.addMetricsBeginRequest(gqlRequest)
-	defer func(startedAt time.Time) {
-		h.addMetricsEndRequest(gqlRequest, time.Since(startedAt))
-	}(time.Now())
-
 	if err = h.validateGraphqlRequest(gqlRequest); err != nil {
 		reporter.error = writeResponseErrors(err, w)
 
 		return
 	}
+
+	h.addMetricsBeginRequest(gqlRequest)
+	defer func(startedAt time.Time) {
+		h.addMetricsEndRequest(gqlRequest, time.Since(startedAt))
+	}(time.Now())
 
 	n := r.Context().Value(nextHandlerCtxKey).(caddyhttp.Handler)
 
