@@ -2,8 +2,8 @@ apiVersion: v2
 name: gbox
 description: GBox Helm chart for Kubernetes. GBox is a reverse proxy in front of any GraphQL server for caching, securing and monitoring.
 type: application
-version: 1.0.4
-appVersion: "v1.0.5"
+version: 1.0.5
+appVersion: "v1.0.6"
 sources:
   - https://github.com/gbox-proxy/gbox
 dependencies:

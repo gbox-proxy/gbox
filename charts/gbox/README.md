@@ -1,6 +1,6 @@
 # GBox Chart for Kubernetes
 
-![Version: 1.0.4](https://img.shields.io/badge/Version-1.0.4-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.0.5](https://img.shields.io/badge/AppVersion-v1.0.5-informational?style=flat-square)
+![Version: 1.0.5](https://img.shields.io/badge/Version-1.0.5-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.0.6](https://img.shields.io/badge/AppVersion-v1.0.6-informational?style=flat-square)
 
 GBox Helm chart for Kubernetes. GBox is a reverse proxy in front of any GraphQL server for caching, securing and monitoring.
 
@@ -60,7 +60,7 @@ To install the chart with the release name `my-release`, run the following comma
 | metrics.serviceMonitor.interval | string | `"30s"` | The interval at which metrics should be scraped |
 | metrics.serviceMonitor.metricRelabelings | list | `[]` | Metrics RelabelConfigs to apply to samples before ingestion. |
 | metrics.serviceMonitor.namespace | string | `""` | The namespace in which the ServiceMonitor will be created |
-| metrics.serviceMonitor.relabellings | list | `[]` |  |
+| metrics.serviceMonitor.relabellings | list | `[]` | Metrics RelabelConfigs to apply to samples before scraping. |
 | metrics.serviceMonitor.scrapeTimeout | string | `""` | The timeout after which the scrape is ended |
 | nameOverride | string | `""` | A name in place of the chart name for `app:` labels. |
 | nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector) configuration. |
