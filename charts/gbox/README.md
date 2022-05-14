@@ -50,9 +50,7 @@ To install the chart with the release name `my-release`, run the following comma
 | ingress.annotations | object | `{}` | Annotations to be added to the ingress. |
 | ingress.className | string | `""` | Ingress [class name](https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-class). |
 | ingress.enabled | bool | `false` | Enable [ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/). |
-| ingress.hosts[0].host | string | `"chart-example.local"` |  |
-| ingress.hosts[0].paths[0].path | string | `"/"` |  |
-| ingress.hosts[0].paths[0].pathType | string | `"ImplementationSpecific"` |  |
+| ingress.hosts | list | See [values.yaml](values.yaml). | Ingress host configuration. |
 | ingress.tls | list | See [values.yaml](values.yaml). | Ingress TLS configuration. |
 | metrics.enabled | bool | `true` | Whether enable Prometheus metric endpoint or not |
 | metrics.path | string | `"/metrics"` | Url path of metric endpoint. |
