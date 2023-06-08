@@ -118,7 +118,9 @@ func (c *cachingTagVisitor) collectTypeKeyTags(path []string, data interface{}, 
 			c.collectTypeKeyTags(path, item, typeName)
 		}
 	case map[string]interface{}:
-		c.addTagForTypeKey(at, v[at], typeName)
+		if v[at] != nil {
+			c.addTagForTypeKey(at, v[at], typeName)
+		}
 	default:
 		c.Walker.StopWithInternalErr(fmt.Errorf("invalid data type expected map or array map but got %T", v))
 	}
