@@ -122,7 +122,9 @@ func (c *cachingTagVisitor) collectTypeKeyTags(path []string, data interface{}, 
 			c.addTagForTypeKey(at, v[at], typeName)
 		}
 	default:
-		c.Walker.StopWithInternalErr(fmt.Errorf("invalid data type expected map or array map but got %T", v))
+		if v != nil {
+			c.Walker.StopWithInternalErr(fmt.Errorf("invalid data type expected map or array map but got %T", v))
+		}
 	}
 }
 
